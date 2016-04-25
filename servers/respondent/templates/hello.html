@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Test page</title>
+
+<h1>Тестовая страница</h1>
+
+<p>Опрос: <span id="poll-title"></span></p>
+<button id="lets-rock" hidden>Let's Rock</button>
+<script>
+  //(function() {
+    var req = new XMLHttpRequest();
+    req.open("GET", "poll", false);
+    req.send();
+    var poll = JSON.parse(req.responseText);
+    document.getElementById("poll-title").innerText = poll.title;
+    
+    var ws = new WebSocket("ws://" + location.host + "/ws");
+	ws.onopen = function(e) {
+		console.log("WS opened")
+	};
+    ws.onclose = function(e) {
+      console.log("WS closed");
+    };
+    ws.onmessage = function(e) {
+      console.log(e.data);
+      var btn = document.getElementById("lets-rock");
+      btn.hidden = false;
+      btn.addEventListener('click', function(evt) {
+        evt.preventDefault();
+        var submit = new XMLHttpRequest();
+        submit.open("POST", "/submit", true);
+        submit.send();
+      }, false);
+    };
+  //})()
+
+</script>
