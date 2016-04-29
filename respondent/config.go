@@ -24,6 +24,7 @@ type respondentConfig struct {
 	appConfig
 
 	// Конфигурация хранилищ
-	PollStorage PollStorage
+	PollStorage       PollStorage
+	StatisticsStorage StatisticsStorage
 }
 >>>>>>> 6e99eb4... session controller, app configuration added

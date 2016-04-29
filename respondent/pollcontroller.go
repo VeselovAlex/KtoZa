@@ -7,9 +7,13 @@ import (
 )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // PollController обрабатывает запросы, связанные с данными опроса
 =======
 >>>>>>> 6e99eb4... session controller, app configuration added
+=======
+// PollController обрабатывает запросы, связанные с данными опроса
+>>>>>>> 2c58c96... Added Statistics storage
 type PollController struct{}
 
 func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
