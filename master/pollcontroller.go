@@ -9,7 +9,7 @@ import (
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
-var dumb = &model.Poll{
+var dumbPoll = &model.Poll{
 	Title:   "Dummy poll",
 	Caption: "Простой опрос для тестирования",
 	Events: model.EventTimings{
@@ -35,18 +35,18 @@ var dumb = &model.Poll{
 type PollController struct {
 }
 
-func (p *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		p.handleGetPoll(w, r)
+		ctrl.handleGetPoll(w, r)
 	default:
 		errMsg := fmt.Sprint("Method &s in unsupported", r.Method)
 		http.Error(w, errMsg, http.StatusMethodNotAllowed)
 	}
 }
 
-func (p *PollController) handleGetPoll(w http.ResponseWriter, r *http.Request) {
-	err := json.NewEncoder(w).Encode(dumb)
+func (ctrl *PollController) handleGetPoll(w http.ResponseWriter, r *http.Request) {
+	err := json.NewEncoder(w).Encode(dumbPoll)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

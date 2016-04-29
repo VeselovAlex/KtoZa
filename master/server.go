@@ -21,6 +21,11 @@ func main() {
 	http.Handle("/api/poll", pollCtrl)
 	fmt.Println("#   /api/poll")
 
+	// StatisticsController starts
+	statsCtrl := &StatisticsController{}
+	http.Handle("/api/stats", statsCtrl)
+	fmt.Println("#   /api/stats")
+
 	fmt.Println("Initialzation complete")
 	fmt.Println("Starting server on", addr)
 
