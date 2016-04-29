@@ -1,18 +1,33 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 )
 
-var addr string = ":8888"
+var addr string
+
+func init() {
+	addr = ":8888"
+}
 
 func main() {
+	fmt.Println("KtoZa poll provider. Master server")
+	fmt.Println("Initialization...")
+
+	// PollController starts
 	pollCtrl := &PollController{}
 	http.Handle("/api/poll", pollCtrl)
+	fmt.Println("#   /api/poll")
 
+	fmt.Println("Initialzation complete")
+	fmt.Println("Starting server on", addr)
+
+	// Starting server on specified addr
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
-		log.Fatalf("Unable to start master server on %s: %v\n", Addr, err)
+		fmt.Printf("Unable to start master server on %s: %v\n", addr, err)
+		log.Fatalf("Unable to start master server on %s: %v\n", addr, err)
 	}
 }
