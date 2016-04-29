@@ -6,7 +6,10 @@ import (
 	"net/http"
 )
 
+<<<<<<< HEAD
 // PollController обрабатывает запросы, связанные с данными опроса
+=======
+>>>>>>> 6e99eb4... session controller, app configuration added
 type PollController struct{}
 
 func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {

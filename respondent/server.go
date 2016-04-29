@@ -14,12 +14,18 @@ func init() {
 	App.Host = ":8080"
 
 	App.PollStorage = NewDummyPollStorage()
+<<<<<<< HEAD
 	App.StatisticsStorage = NewDummyStatisticsStorage()
 }
 
 func main() {
 	statics := http.FileServer(http.Dir("client"))
 	http.Handle("/", http.StripPrefix("/", statics))
+=======
+}
+
+func main() {
+>>>>>>> 6e99eb4... session controller, app configuration added
 	http.Handle("/api/poll", &PollController{})
 	http.Handle("/api/stats", &StatisticsController{})
 	http.Handle("/api/register", &SessionController{})
