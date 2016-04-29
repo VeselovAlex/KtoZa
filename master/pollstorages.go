@@ -12,7 +12,7 @@ import (
 func NewDummyPollStorage() common.PollStorage {
 	return &dummyPollStorage{
 		&model.Poll{
-			Title:   "Dummy poll",
+			Title:   "Dummy poll (master)",
 			Caption: "Простой опрос для тестирования",
 			Events: model.EventTimings{
 				RegistrationAt: time.Now().Add(5 * time.Second),

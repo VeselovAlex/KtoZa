@@ -4,12 +4,21 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	common "github.com/VeselovAlex/KtoZa"
 )
 
 var addr string
 
+// App реализует хранение конфигурации приложения и внедрение зависимостей
+var App common.Config
+
 func init() {
-	addr = ":8888"
+	App.Host = ":8888"
+
+	App.PollStorage = NewDummyPollStorage()
+	App.ResponseEncoder = JSONEnqDeq
+	App.RequestDecoder = JSONEnqDeq
 }
 
 func main() {
@@ -27,12 +36,12 @@ func main() {
 	fmt.Println("#   /api/stats")
 
 	fmt.Println("Initialzation complete")
-	fmt.Println("Starting server on", addr)
+	fmt.Println("Starting server on", App.Host)
 
 	// Starting server on specified addr
-	err := http.ListenAndServe(addr, nil)
+	err := http.ListenAndServe(App.Host, nil)
 	if err != nil {
-		fmt.Printf("Unable to start master server on %s: %v\n", addr, err)
-		log.Fatalf("Unable to start master server on %s: %v\n", addr, err)
+		fmt.Printf("Unable to start master server on %s: %v\n", App.Host, err)
+		log.Fatalf("Unable to start master server on %s: %v\n", App.Host, err)
 	}
 }

@@ -3,16 +3,11 @@ package main
 import (
 	"log"
 
+	common "github.com/VeselovAlex/KtoZa"
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
-type StatisticsStorage interface {
-	Get() *model.Statistics
-	CreateOrUpdate(*model.Statistics) *model.Statistics
-	Delete() *model.Statistics
-}
-
-func NewDummyStatisticsStorage() StatisticsStorage {
+func NewDummyStatisticsStorage() common.StatisticsStorage {
 	return &dummyStatStorage{
 		stat: model.CreateStatisticsFor(App.PollStorage.Get()),
 	}
