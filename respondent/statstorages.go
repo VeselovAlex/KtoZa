@@ -3,24 +3,11 @@ package main
 import (
 	"log"
 
-<<<<<<< HEAD
 	common "github.com/VeselovAlex/KtoZa"
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
 func NewDummyStatisticsStorage() common.StatisticsStorage {
-=======
-	"github.com/VeselovAlex/KtoZa/model"
-)
-
-type StatisticsStorage interface {
-	Get() *model.Statistics
-	CreateOrUpdate(*model.Statistics) *model.Statistics
-	Delete() *model.Statistics
-}
-
-func NewDummyStatisticsStorage() StatisticsStorage {
->>>>>>> 2c58c96... Added Statistics storage
 	return &dummyStatStorage{
 		stat: model.CreateStatisticsFor(App.PollStorage.Get()),
 	}

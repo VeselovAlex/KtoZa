@@ -29,6 +29,7 @@ func (ctrl *PollController) handleGetPoll(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
+
 func (ctrl *PollController) handleCreateOrUpdatePoll(w http.ResponseWriter, r *http.Request) {
 	log.Println("CreateOrUpdate call")
 	poll := App.PollStorage.Get()

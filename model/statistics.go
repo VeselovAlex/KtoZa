@@ -25,29 +25,6 @@ type QuestionStat struct {
 	Options []OptionStat `json:"options"`
 }
 
-// Statistics представляет экземпляр статистики для опроса
-type Statistics struct {
-	// Время последнего обновления статистики
-	LastUpdate time.Time `json:"date"`
-
-	// Статистика по отдельным вопросам
-	Questions []QuestionStat `json:"questions"`
-
-	// Число принятых ответов
-	RespondentsCount int `json:"respondents"`
-
-	poll *Poll
-}
-
-// QuestionStat представляет данные статистики отдельного вопроса
-type QuestionStat struct {
-	// Число принятых ответов на вопрос
-	AnswersCount int `json:"answerCount"`
-
-	// Статистика по вариантам ответа
-	Options []OptionStat `json:"options"`
-}
-
 // OptionStat представляет статистику по отдельному варианту ответа
 type OptionStat struct {
 	Count int `json:"count"`
@@ -129,14 +106,6 @@ func (stat *Statistics) ApplyAnswerSet(ans AnswerSet) bool {
 
 	if hasUpdates {
 		stat.RespondentsCount++
-		if que.AnswersCount != 0 {
-			stat.Questions[i].joinWith(que)
-			hasUpdates = true
-		}
-	}
-
-	if hasUpdates {
-		stat.RespondentsCount += other.RespondentsCount
 		stat.LastUpdate = time.Now()
 	}
 	return hasUpdates

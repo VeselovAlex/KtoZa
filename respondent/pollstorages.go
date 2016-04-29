@@ -4,17 +4,12 @@ import (
 	"log"
 	"time"
 
+	common "github.com/VeselovAlex/KtoZa"
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
-type PollStorage interface {
-	Get() *model.Poll
-	CreateOrUpdate(poll *model.Poll) *model.Poll
-	Delete() *model.Poll
-}
-
 // NewDummyPollStorage возвращает интерфейс хранилища опросов для отладки
-func NewDummyPollStorage() PollStorage {
+func NewDummyPollStorage() common.PollStorage {
 	return &dummyPollStorage{
 		&model.Poll{
 			Title:   "Dummy poll",
