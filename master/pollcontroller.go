@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -39,6 +40,8 @@ func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		ctrl.handleGetPoll(w, r)
+	case http.MethodPut:
+		ctrl.handleCreateOrUpdatePoll(w, r)
 	default:
 		errMsg := fmt.Sprint("Method &s in unsupported", r.Method)
 		http.Error(w, errMsg, http.StatusMethodNotAllowed)
@@ -50,4 +53,8 @@ func (ctrl *PollController) handleGetPoll(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (ctrl *PollController) handleCreateOrUpdatePoll(w http.ResponseWriter, r *http.Request) {
+	log.Println("CreateOrUpdate call")
 }
