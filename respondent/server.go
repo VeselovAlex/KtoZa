@@ -14,6 +14,7 @@ func init() {
 	App.Host = ":8080"
 
 	App.PollStorage = NewDummyPollStorage()
+	App.StatisticsStorage = NewDummyStatisticsStorage()
 }
 
 func main() {

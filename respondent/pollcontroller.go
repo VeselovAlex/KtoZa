@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// PollController обрабатывает запросы, связанные с данными опроса
 type PollController struct{}
 
 func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -18,5 +18,6 @@ type respondentConfig struct {
 	appConfig
 
 	// Конфигурация хранилищ
-	PollStorage PollStorage
+	PollStorage       PollStorage
+	StatisticsStorage StatisticsStorage
 }
