@@ -1,0 +1,16 @@
+<div ng-init="pollCtrl.checkLocation();questionsCtrl.load(pollCtrl.poll)">
+  <h2>Вопросы</h2>
+  <div class="question" ng-class="{'answered':questionsCtrl.isAnswered(i)}" ng-repeat="(i, q) in pollCtrl.poll.questions" ng-click="questionsCtrl.setActive(i)">
+    <p ng-show="q.type === 'single-option'">Вопрос с выбором <em>одного</em> варианта ответа</p>
+    <p ng-show="q.type === 'multi-option'">Вопрос с выбором <em>одного или нескольких</em> вариантов ответа</p>
+    <h3><span ng-bind="q.text"></span></h3>
+    <ul ng-show="questionsCtrl.isActive(i)">
+      <li ng-repeat="(j, o) in q.options" class="option" ng-click="questionsCtrl.select(i, j)">
+        <span ng-show="questionsCtrl.isSelected(i, j)">* </span>
+        <span ng-bind="o"></span>
+      </li>
+    </ul>
+  </div>
+  <button type="button" ng-click="questionsCtrl.submit()">Отправить</button>
+  <button type="button" ng-click="questionsCtrl.reset()">Очистить</button>
+</div>

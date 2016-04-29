@@ -18,6 +18,8 @@ func init() {
 }
 
 func main() {
+	statics := http.FileServer(http.Dir("client"))
+	http.Handle("/", http.StripPrefix("/", statics))
 	http.Handle("/api/poll", &PollController{})
 	http.Handle("/api/stats", &StatisticsController{})
 	http.Handle("/api/register", &SessionController{})

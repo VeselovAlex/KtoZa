@@ -1,0 +1,4 @@
+<div ng-init="pollCtrl.checkLocation()">
+    До начала регистрации осталось
+    <countdown to="pollCtrl.poll.events.registration" onfinish="pollCtrl.checkLocation()"></countdown>
+</div>
