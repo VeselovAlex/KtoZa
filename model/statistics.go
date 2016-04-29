@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+<<<<<<< HEAD
 // Statistics представляет экземпляр статистики для опроса
 type Statistics struct {
 	// Время последнего обновления статистики
@@ -26,10 +27,24 @@ type QuestionStat struct {
 }
 
 // OptionStat представляет статистику по отдельному варианту ответа
+=======
+type Statistics struct {
+	LastUpdate       time.Time      `json:"date"`
+	Questions        []QuestionStat `json:"questions"`
+	RespondentsCount int            `json:"respondents"`
+}
+
+type QuestionStat struct {
+	AnswersCount int          `json:"answerCount"`
+	Options      []OptionStat `json:"options"`
+}
+
+>>>>>>> 053f099... statistics remodelled
 type OptionStat struct {
 	Count int `json:"count"`
 }
 
+<<<<<<< HEAD
 // CreateStatisticsFor создает и инициализирует объект статистики
 // в соответствии с заданным опросом
 func CreateStatisticsFor(poll *Poll) *Statistics {
@@ -48,12 +63,20 @@ func CreateStatisticsFor(poll *Poll) *Statistics {
 // статистики были объединены, обновляет LastUpdate и возвращает true
 func (stat *Statistics) JoinWith(other *Statistics) bool {
 	if !other.isJoinableWith(stat) {
+=======
+// Join объединяет данную статистику с текущей, суммируя ответы.
+// Возвращает true, если статистики были объединены
+func (stat *Statistics) Join(other *Statistics) bool {
+	if len(other.Questions) != len(stat.Questions) {
+		// Статистика не соответствует текущей
+>>>>>>> 053f099... statistics remodelled
 		return false
 	}
 
 	hasUpdates := false
 
 	for i, que := range other.Questions {
+<<<<<<< HEAD
 		if que.AnswersCount != 0 {
 			stat.Questions[i].joinWith(que)
 			hasUpdates = true
@@ -106,10 +129,34 @@ func (stat *Statistics) ApplyAnswerSet(ans AnswerSet) bool {
 
 	if hasUpdates {
 		stat.RespondentsCount++
+=======
+		// Соответствуюий вопрос из текущей статистики
+		matchQ := stat.Questions[i]
+		if len(que.Options) != len(matchQ.Options) {
+			// Вопрос не соответствует текущему
+			continue
+		}
+
+		if que.AnswersCount != 0 {
+			// Вопрос обновлен
+			stat.Questions[i].AnswersCount += que.AnswersCount
+			for j, opt := range que.Options {
+				// Суммируем ответы
+				matchQ.Options[j].Count += opt.Count
+			}
+			hasUpdates = true
+		}
+
+	}
+
+	if hasUpdates {
+		stat.RespondentsCount += other.RespondentsCount
+>>>>>>> 053f099... statistics remodelled
 		stat.LastUpdate = time.Now()
 	}
 	return hasUpdates
 }
+<<<<<<< HEAD
 
 func (qs *QuestionStat) applyAnswer(ans Answer) {
 	ansAsSlice := []int(ans)
@@ -130,3 +177,5 @@ func (stat *Statistics) isValidAnswerSet(ansSet AnswerSet) bool {
 	}
 	return true
 }
+=======
+>>>>>>> 053f099... statistics remodelled
