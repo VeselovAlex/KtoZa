@@ -23,7 +23,11 @@ func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Reque
 
 // For debug purposes
 func (ctrl *StatisticsController) handleGetStats(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 	dumbStats := model.CreateStatisticsFor(App.PollStorage.Get())
+=======
+	dumbStats := model.CreateStatisticsFor(dumbPoll)
+>>>>>>> 7109889... statscontroller remodelled, some minor fixes
 	err := json.NewEncoder(w).Encode(dumbStats)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

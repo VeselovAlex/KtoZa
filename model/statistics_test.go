@@ -5,11 +5,7 @@ import (
 	"time"
 )
 
-<<<<<<< HEAD
 func TestJoinWith(t *testing.T) {
-=======
-func TestJoin(t *testing.T) {
->>>>>>> 053f099... statistics remodelled
 	now := time.Now()
 	stat1 := &Statistics{
 		LastUpdate:       now,
@@ -43,11 +39,7 @@ func TestJoin(t *testing.T) {
 
 	// Чтобы проверить изменение времени последнего обновления
 	time.Sleep(100 * time.Millisecond)
-<<<<<<< HEAD
 	stat1.JoinWith(stat2)
-=======
-	stat1.Join(stat2)
->>>>>>> 053f099... statistics remodelled
 
 	// Все счетчики должны удвоиться
 	if stat1.RespondentsCount != 2*stat2.RespondentsCount {
@@ -77,7 +69,6 @@ func TestJoin(t *testing.T) {
 		t.Errorf("LastUpdate has not been updated")
 	}
 }
-<<<<<<< HEAD
 
 func TestApplyAnswerSet(t *testing.T) {
 	now := time.Now()
@@ -126,5 +117,3 @@ func TestApplyAnswerSet(t *testing.T) {
 		t.Errorf("LastUpdate has not been updated")
 	}
 }
-=======
->>>>>>> 053f099... statistics remodelled
