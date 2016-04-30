@@ -16,8 +16,8 @@ var App common.Config
 func init() {
 	App.Host = ":8888"
 
-	App.PollStorage = NewDummyPollStorage()
-	App.StatisticsStorage = NewDummyStatisticsStorage()
+	App.PollStorage = NewMasterPollStorage()
+	App.StatisticsStorage = NewMasterStatisticsStorage()
 
 	App.PubSub = newWebSocketPubSub()
 }

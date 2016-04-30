@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // Statistics представляет экземпляр статистики для опроса
 type Statistics struct {
@@ -14,6 +17,9 @@ type Statistics struct {
 	RespondentsCount int `json:"respondents"`
 
 	poll *Poll
+
+	// Грубая блокировка
+	Lock sync.RWMutex `json:"-"`
 }
 
 // QuestionStat представляет данные статистики отдельного вопроса

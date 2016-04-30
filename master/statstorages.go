@@ -27,7 +27,7 @@ func (st *masterStatStorage) Get() *model.Statistics {
 	return st.stat
 }
 
-func (st *masterStatStorage) CreateOrUpdate(stat *model.Statistics) *model.Statistics {
+func (st *masterStatStorage) CreateOrJoinWith(stat *model.Statistics) *model.Statistics {
 	st.lock.Lock()
 	defer st.lock.Unlock()
 	joined := st.stat.JoinWith(stat)

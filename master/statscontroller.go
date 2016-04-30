@@ -26,19 +26,24 @@ func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Reque
 }
 
 func (ctrl *StatisticsController) handleGetStats(w http.ResponseWriter, r *http.Request) {
+	// Пытаемся получить статистику
 	stat := App.StatisticsStorage.Get()
+
 	if stat == nil {
-		// Если статистика не создана, то пытаемся создать
+		// Если статистика не создана, то пытаемся ее создать
 		poll := App.PollStorage.Get()
 		if poll != nil {
-			// Если задан опрос, то создаем статистику
 			stat = model.CreateStatisticsFor(poll)
-			App.StatisticsStorage.CreateOrUpdate(stat)
+			stat = App.StatisticsStorage.CreateOrJoinWith(stat)
 		}
 	}
 
+	stat.Lock.RLock()
+	defer stat.Lock.RUnlock()
+
 	// Кодируем статистику в JSON и отправляем
 	err := json.NewEncoder(w).Encode(stat)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Println("STATISTICS [GET] :: Error:", err)

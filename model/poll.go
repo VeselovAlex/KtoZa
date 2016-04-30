@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // Poll представляет структуру данных опроса системы KtoZa
 type Poll struct {
@@ -8,6 +11,9 @@ type Poll struct {
 	Caption   string       `json:"caption"`
 	Events    EventTimings `json:"events"`
 	Questions []Question   `json:"questions"`
+
+	// Грубая блокировка опроса
+	Lock sync.RWMutex `json:"-"`
 }
 
 // EventTimings представляет структуру, хранящую время до начала событий опроса:

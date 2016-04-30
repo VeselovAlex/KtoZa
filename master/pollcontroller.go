@@ -30,8 +30,9 @@ func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // GET
 func (ctrl *PollController) handleGetPoll(w http.ResponseWriter, r *http.Request) {
 	poll := App.PollStorage.Get()
-
+	poll.Lock.RLock()
 	err := json.NewEncoder(w).Encode(poll)
+	poll.Lock.RUnlock()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Println("POLL [GET] :: Error:", err)
@@ -52,7 +53,11 @@ func (ctrl *PollController) handleCreateOrUpdatePoll(w http.ResponseWriter, r *h
 	upd := App.PollStorage.CreateOrUpdate(poll)
 	if upd != nil {
 		// Опрос был обновлен
-		App.PubSub.NotifyAll(About.UpdatedPoll(poll))
+		func() {
+			upd.Lock.RLock()
+			defer upd.Lock.RUnlock()
+			App.PubSub.NotifyAll(About.UpdatedPoll(poll))
+		}()
 		log.Println("POLL [PUT] :: Poll update")
 	}
 }

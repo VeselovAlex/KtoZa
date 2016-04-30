@@ -27,8 +27,13 @@ func ListenPubSub() {
 			upd := App.StatisticsStorage.CreateOrJoinWith(cache)
 			if upd != nil {
 				// Статистика обновлена
-				App.PubSub.NotifyAll(About.UpdatedStatistics(upd))
+				func() {
+					upd.Lock.RLock()
+					defer upd.Lock.Unlock()
+					App.PubSub.NotifyAll(About.UpdatedStatistics(upd))
+				}()
 			}
+
 		default:
 			// Пропускаем
 		}
