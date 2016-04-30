@@ -1,7 +1,7 @@
 package KtoZa
 
 import (
-	"net/http"
+	"io"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -19,9 +19,9 @@ type StatisticsStorage interface {
 }
 
 type RequestDecoder interface {
-	FromRequest(*http.Request, interface{}) error
+	FromRequest(io.Reader, interface{}) error
 }
 
 type ResponseEncoder interface {
-	ToResponseWriter(http.ResponseWriter, interface{}) error
+	ToResponseWriter(io.Writer, interface{}) error
 }

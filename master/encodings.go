@@ -2,17 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
+	"io"
 )
 
 var JSONEnqDeq *jsonEnqDec
 
 type jsonEnqDec struct{}
 
-func (*jsonEnqDec) FromRequest(r *http.Request, to interface{}) error {
-	return json.NewDecoder(r.Body).Decode(to)
+func (*jsonEnqDec) FromRequest(r io.Reader, to interface{}) error {
+	return json.NewDecoder(r).Decode(to)
 }
 
-func (*jsonEnqDec) ToResponseWriter(w http.ResponseWriter, data interface{}) error {
+func (*jsonEnqDec) ToResponseWriter(w io.Writer, data interface{}) error {
 	return json.NewEncoder(w).Encode(data)
 }
