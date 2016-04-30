@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"golang.org/x/net/websocket"
-
 	common "github.com/VeselovAlex/KtoZa"
 )
 
@@ -37,9 +35,8 @@ func main() {
 	http.Handle("/api/stats", statsCtrl)
 	fmt.Println("#   /api/stats")
 
-	// StatisticsController starts
-	wsCtrl := websocket.Handler(handleWebSocketConnection)
-	http.Handle("/ws", wsCtrl)
+	// WebSocketPubSub starts
+	http.Handle("/ws", NewWebSocketPubSubController())
 	fmt.Println("#   /ws")
 
 	fmt.Println("Initialization complete")
