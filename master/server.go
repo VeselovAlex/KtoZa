@@ -1,5 +1,6 @@
 package main
 
+<<<<<<< HEAD
 import (
 	"fmt"
 	"log"
@@ -48,4 +49,10 @@ func main() {
 		fmt.Printf("Unable to start master server on %s: %v\n", App.Host, err)
 		log.Fatalf("Unable to start master server on %s: %v\n", App.Host, err)
 	}
+=======
+import "fmt"
+
+func main() {
+	fmt.Println("Hello")
+>>>>>>> ef16452... poll remodelled, server updated
 }
