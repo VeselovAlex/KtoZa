@@ -16,4 +16,7 @@ type Config struct {
 	// Конфигурация сериализаторов
 	RequestDecoder  RequestDecoder
 	ResponseEncoder ResponseEncoder
+
+	// Конфигурация Pub/Sub
+	PubSub PubSub
 }

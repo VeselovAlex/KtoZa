@@ -17,8 +17,9 @@ func init() {
 	App.Host = ":8888"
 
 	App.PollStorage = NewDummyPollStorage()
-	App.ResponseEncoder = JSONEnqDeq
-	App.RequestDecoder = JSONEnqDeq
+	App.StatisticsStorage = NewDummyStatisticsStorage()
+
+	App.PubSub = newWebSocketPubSub()
 }
 
 func main() {

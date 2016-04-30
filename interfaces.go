@@ -25,3 +25,9 @@ type RequestDecoder interface {
 type ResponseEncoder interface {
 	ToResponseWriter(io.Writer, interface{}) error
 }
+
+type PubSub interface {
+	Subscribe(io.ReadWriteCloser)
+	NotifyAll(interface{})
+	Await() interface{}
+}

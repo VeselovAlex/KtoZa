@@ -47,6 +47,7 @@ func (st *dummyPollStorage) Get() *model.Poll {
 func (st *dummyPollStorage) CreateOrUpdate(poll *model.Poll) *model.Poll {
 	log.Println("Dummy poll storage CreateOrUpdate()")
 	st.poll = poll
+	App.PubSub.NotifyAll(About.UpdatedPoll(poll))
 	return poll
 }
 

@@ -40,7 +40,8 @@ func TestWebSocketConn(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	for i := 1; i <= 10; i++ {
+	var numConns = 10
+	for i := 1; i <= numConns; i++ {
 		wg.Add(1)
 		go func(num int) {
 			defer wg.Done()
@@ -49,7 +50,12 @@ func TestWebSocketConn(t *testing.T) {
 				t.Fatal("Bad websocket connection to", url)
 				return
 			}
-			t.Logf("Client #%d:: Connected\n", num)
+
+			err = websocket.JSON.Send(conn, About.UpdatedPoll(nil))
+			if err != nil {
+				t.Error("Unable to send data")
+			}
+
 			rec := ""
 			err = websocket.JSON.Receive(conn, &rec)
 			if err != nil {
@@ -60,8 +66,15 @@ func TestWebSocketConn(t *testing.T) {
 			conn.Close()
 		}(i)
 	}
-	time.Sleep(time.Second)
-	Respondents.NotifyAll("test message")
+
+	go func() {
+		for i := 0; i < numConns; i++ {
+			App.PubSub.Await()
+		}
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	App.PubSub.NotifyAll("test message")
 	wg.Wait()
 	// Ожидание вывода
 	time.Sleep(100 * time.Millisecond)

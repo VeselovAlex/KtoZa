@@ -8,8 +8,6 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-var Respondents = newWebSocketPubSub()
-
 type wsPubSubPool struct {
 	subscribe chan *connection
 	delete    chan *connection
@@ -26,6 +24,7 @@ func newWebSocketPubSub() *wsPubSubPool {
 		read:      make(chan interface{}, 16),
 		clients:   make(map[*connection]bool, 16),
 	}
+	go res.run()
 	return res
 }
 
@@ -122,13 +121,12 @@ func (c *connection) write() {
 }
 
 func NewWebSocketPubSubController() http.Handler {
-	if Respondents == nil {
-		Respondents = newWebSocketPubSub()
+	if App.PubSub == nil {
+		App.PubSub = newWebSocketPubSub()
 	}
-	go Respondents.run()
 	return websocket.Handler(handleWebSocketConnection)
 }
 
 func handleWebSocketConnection(conn *websocket.Conn) {
-	Respondents.Subscribe(conn)
+	App.PubSub.Subscribe(conn)
 }
