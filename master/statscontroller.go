@@ -16,8 +16,6 @@ func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	switch r.Method {
 	case http.MethodGet:
 		ctrl.handleGetStats(w, r)
-	//case http.MethodPut:
-	//	ctrl.handleCreateOrUpdateStats(w, r)
 	case http.MethodDelete:
 		ctrl.handleDeleteStats(w, r)
 	default:
@@ -44,34 +42,6 @@ func (ctrl *StatisticsController) handleGetStats(w http.ResponseWriter, r *http.
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Println("STATISTICS [GET] :: Error:", err)
-	}
-}
-
-// TO_DELETE
-func (ctrl *StatisticsController) handleCreateOrUpdateStats(w http.ResponseWriter, r *http.Request) {
-	// Читаем статистику из JSON
-	stat := &model.Statistics{}
-	err := json.NewDecoder(r.Body).Decode(stat)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Println("STATISTICS [PUT] :: Error:", err)
-		return
-	}
-
-	if stat.LastUpdate.IsZero() {
-		// Передан null
-		log.Println("STATISTICS [PUT] :: Error:", "Unable to set current statistics to null.",
-			"Use method DELETE instead")
-		http.Error(w, "Unable to set current statistics to null. Use method DELETE instead",
-			http.StatusBadRequest)
-		return
-	}
-
-	newStat := App.StatisticsStorage.CreateOrUpdate(stat)
-	if newStat != nil {
-		// Статистика была обновлена
-		App.PubSub.NotifyAll(About.UpdatedStatistics(newStat))
-		log.Println("STATISTICS [PUT] :: Statistics update")
 	}
 }
 
