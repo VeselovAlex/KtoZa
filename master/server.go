@@ -30,6 +30,7 @@ var App struct {
 
 	PollController       *controllers.PollController
 	StatisticsController *controllers.StatisticsController
+	WebSocketController  http.Handler
 }
 
 func init() {
@@ -37,8 +38,15 @@ func init() {
 
 	logListener := new(LogListener)
 
-	App.StatisticsController = controllers.NewStatisticsController(logListener)
-	App.PollController = controllers.NewPollController(logListener, App.StatisticsController)
+	controllers.LoadFileSystemStorage("data")
+	storageListener := controllers.NewStorageUpdateListener()
+	respondentsListener := controllers.NewRespondentsUpdateListener()
+
+	App.StatisticsController = controllers.NewStatisticsController(
+		logListener, storageListener, respondentsListener)
+	App.PollController = controllers.NewPollController(
+		logListener, App.StatisticsController, storageListener, respondentsListener)
+	App.WebSocketController = controllers.NewWebSocketPubSubController()
 }
 
 func main() {
@@ -50,6 +58,9 @@ func main() {
 
 	http.Handle("/api/stats", App.StatisticsController)
 	fmt.Println("#   /api/stats")
+
+	http.Handle("/api/ws", App.WebSocketController)
+	fmt.Println("#   /api/ws")
 
 	fmt.Println("Initialization complete")
 	fmt.Println("Starting server on", App.Host)

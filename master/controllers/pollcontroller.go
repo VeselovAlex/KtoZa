@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"sync"
 
 	"github.com/VeselovAlex/KtoZa/model"
@@ -27,19 +26,17 @@ type PollController struct {
 }
 
 func NewPollController(listeners ...PollListener) *PollController {
-	path := path.Join("data", "poll.json")
-	src, err := os.Open(path)
-	if src != nil {
-		defer src.Close()
-	}
+	poll, err := Storage.ReadPoll()
 	if err != nil {
-		log.Fatalln("POLL CONTROLLER :: Unable to read poll data from", path, ":", err)
-	}
-
-	poll := &model.Poll{}
-	err = json.NewDecoder(src).Decode(poll)
-	if err != nil {
-		log.Fatalln("POLL CONTROLLER :: Unable to read poll data from", path, ":", err)
+		if err == os.ErrNotExist {
+			poll = &model.Poll{}
+			err = Storage.WritePoll(poll)
+			if err != nil {
+				log.Fatalln("POLL CONTROLLER :: Unable to read poll data:", err)
+			}
+		} else {
+			log.Fatalln("POLL CONTROLLER :: Unable to read poll data:", err)
+		}
 	}
 
 	ctrl := &PollController{

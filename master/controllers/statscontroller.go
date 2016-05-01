@@ -23,9 +23,11 @@ type StatisticsController struct {
 }
 
 func NewStatisticsController(listeners ...StatisticsListener) *StatisticsController {
-	return &StatisticsController{
+	ctrl := &StatisticsController{
 		listeners: listeners,
 	}
+	go ctrl.listenForAnswerCaches()
+	return ctrl
 }
 
 func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +77,43 @@ func (ctrl *StatisticsController) notifyListeners(stat *model.Statistics) {
 func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
-
-	ctrl.stat = model.CreateStatisticsFor(poll)
+	if ctrl.stat == nil {
+		// Первоначальная загрузка
+		var err error
+		stat, err := Storage.ReadStatistics()
+		newStat := model.CreateStatisticsFor(poll)
+		if err != nil || stat == nil || !newStat.IsJoinableWith(stat) {
+			//Нет статистики
+			ctrl.stat = newStat
+		} else {
+			ctrl.stat = stat
+		}
+	} else {
+		ctrl.stat = model.CreateStatisticsFor(poll)
+	}
 	ctrl.notifyListeners(ctrl.stat)
+}
+
+func (ctrl *StatisticsController) listenForAnswerCaches() {
+	apply := func(cache *model.Statistics) {
+		ctrl.lock.Lock()
+		defer ctrl.lock.Unlock()
+		if ok := ctrl.stat.JoinWith(cache); ok {
+			ctrl.notifyListeners(ctrl.stat)
+		}
+	}
+	for {
+		msg, ok := Respondents.Await().(eventMessage)
+		if !ok || msg.Event != EventNewAnswerCache {
+			log.Println("STATISTICS CTRL :: Bad message got from respondent")
+			continue
+		}
+		cache := &model.Statistics{}
+		err := json.Unmarshal(msg.Data, cache)
+		if err != nil {
+			log.Println("STATISTICS CTRL :: Bad message got from respondent:", err)
+			continue
+		}
+		apply(cache)
+	}
 }

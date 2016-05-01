@@ -1,12 +1,16 @@
-package main
+package controllers
 
 import (
 	"io"
 	"log"
 	"net/http"
 
+	"github.com/VeselovAlex/KtoZa/model"
+
 	"golang.org/x/net/websocket"
 )
+
+var Respondents = newWebSocketPubSub()
 
 type wsPubSubPool struct {
 	subscribe chan *connection
@@ -121,12 +125,22 @@ func (c *connection) write() {
 }
 
 func NewWebSocketPubSubController() http.Handler {
-	if App.PubSub == nil {
-		App.PubSub = newWebSocketPubSub()
-	}
 	return websocket.Handler(handleWebSocketConnection)
 }
 
 func handleWebSocketConnection(conn *websocket.Conn) {
-	App.PubSub.Subscribe(conn)
+	Respondents.Subscribe(conn)
+}
+
+type RespondentsUpdateListener struct{}
+
+func NewRespondentsUpdateListener() *RespondentsUpdateListener {
+	return &RespondentsUpdateListener{}
+}
+
+func (l *RespondentsUpdateListener) OnPollUpdate(poll *model.Poll) {
+	Respondents.NotifyAll(About.UpdatedPoll(poll))
+}
+func (l *RespondentsUpdateListener) OnStatisticsUpdate(stat *model.Statistics) {
+	Respondents.NotifyAll(About.UpdatedStatistics(stat))
 }

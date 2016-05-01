@@ -37,6 +37,9 @@ type OptionStat struct {
 // CreateStatisticsFor создает и инициализирует объект статистики
 // в соответствии с заданным опросом
 func CreateStatisticsFor(poll *Poll) *Statistics {
+	if poll == nil {
+		return nil
+	}
 	stat := &Statistics{
 		LastUpdate: time.Now(),
 		Questions:  make([]QuestionStat, len(poll.Questions)),
@@ -50,7 +53,7 @@ func CreateStatisticsFor(poll *Poll) *Statistics {
 // JoinWith объединяет данную статистику с текущей, суммируя ответы. Если
 // статистики были объединены, обновляет LastUpdate и возвращает true
 func (stat *Statistics) JoinWith(other *Statistics) bool {
-	if !other.isJoinableWith(stat) {
+	if !other.IsJoinableWith(stat) {
 		return false
 	}
 
@@ -71,7 +74,7 @@ func (stat *Statistics) JoinWith(other *Statistics) bool {
 }
 
 func JoinStatistics(one, other *Statistics) *Statistics {
-	if !other.isJoinableWith(one) {
+	if !other.IsJoinableWith(one) {
 		return nil
 	}
 	ret := &Statistics{
@@ -115,7 +118,7 @@ func (qs *QuestionStat) joinWith(other QuestionStat) {
 	qs.AnswersCount += other.AnswersCount
 }
 
-func (stat *Statistics) isJoinableWith(other *Statistics) bool {
+func (stat *Statistics) IsJoinableWith(other *Statistics) bool {
 	if len(other.Questions) != len(stat.Questions) {
 		// Статистика не соответствует текущей
 		return false

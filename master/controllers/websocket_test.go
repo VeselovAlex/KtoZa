@@ -1,4 +1,4 @@
-package main
+package controllers
 
 import (
 	"io"
@@ -69,12 +69,12 @@ func TestWebSocketConn(t *testing.T) {
 
 	go func() {
 		for i := 0; i < numConns; i++ {
-			App.PubSub.Await()
+			Respondents.Await()
 		}
 	}()
 
 	time.Sleep(100 * time.Millisecond)
-	App.PubSub.NotifyAll("test message")
+	Respondents.NotifyAll("test message")
 	wg.Wait()
 	// Ожидание вывода
 	time.Sleep(100 * time.Millisecond)
