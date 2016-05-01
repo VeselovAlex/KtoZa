@@ -62,7 +62,11 @@ func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.snapshotLock.Lock()
 	defer ctrl.snapshotLock.Unlock()
 	ctrl.cache = model.CreateStatisticsFor(poll)
-	ctrl.snapshot = model.CreateStatisticsFor(poll)
+	stats, err := MasterServer.GetStatistics()
+	if err != nil {
+		log.Fatalln("STAT CONTROLLER :: Bad poll update:", err)
+	}
+	ctrl.snapshot = stats
 	ctrl.onSnapshotUpdated()
 }
 

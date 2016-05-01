@@ -41,7 +41,7 @@ func init() {
 
 	logListener := &LogListener{}
 
-	controllers.ConnectToMaster("")
+	controllers.ConnectToMaster("http://localhost:8888")
 	App.StatisticsController = controllers.NewTestStatCtrl(logListener)
 	App.SessionController = controllers.NewSessionController()
 	App.AnswerController = controllers.NewTestAnswerCtrl(logListener, App.StatisticsController)

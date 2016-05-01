@@ -1,16 +1,32 @@
-package main
+package controllers
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
+type StatisticsListener interface {
+	OnStatisticsUpdate(*model.Statistics)
+}
+
 // StatisticsController обрабатывает запросы, связанные с данными статистики
-type StatisticsController struct{}
+type StatisticsController struct {
+	listeners []StatisticsListener
+
+	lock sync.RWMutex
+	stat *model.Statistics
+}
+
+func NewStatisticsController(listeners ...StatisticsListener) *StatisticsController {
+	return &StatisticsController{
+		listeners: listeners,
+	}
+}
 
 func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -21,28 +37,16 @@ func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	default:
 		errMsg := fmt.Sprint("Method &s in unsupported", r.Method)
 		http.Error(w, errMsg, http.StatusMethodNotAllowed)
-		log.Printf("STATISTICS [%s] :: %s\n", r.Method, errMsg)
+		log.Printf("STAT CONTROLLER :: [%s] %s\n", r.Method, errMsg)
 	}
 }
 
 func (ctrl *StatisticsController) handleGetStats(w http.ResponseWriter, r *http.Request) {
-	// Пытаемся получить статистику
-	stat := App.StatisticsStorage.Get()
-
-	if stat == nil {
-		// Если статистика не создана, то пытаемся ее создать
-		poll := App.PollStorage.Get()
-		if poll != nil {
-			stat = model.CreateStatisticsFor(poll)
-			stat = App.StatisticsStorage.CreateOrJoinWith(stat)
-		}
-	}
-
-	stat.Lock.RLock()
-	defer stat.Lock.RUnlock()
+	ctrl.lock.RLock()
+	defer ctrl.lock.RUnlock()
 
 	// Кодируем статистику в JSON и отправляем
-	err := json.NewEncoder(w).Encode(stat)
+	err := json.NewEncoder(w).Encode(ctrl.stat)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -51,10 +55,27 @@ func (ctrl *StatisticsController) handleGetStats(w http.ResponseWriter, r *http.
 }
 
 func (ctrl *StatisticsController) handleDeleteStats(w http.ResponseWriter, r *http.Request) {
-	stat := App.StatisticsStorage.Delete()
+	ctrl.lock.Lock()
+	defer ctrl.lock.Unlock()
+	stat := ctrl.stat
 	if stat != nil {
 		// Статистика не была удалена ранее
-		App.PubSub.NotifyAll(About.UpdatedStatistics(nil))
+		stat = nil
+		ctrl.notifyListeners(nil)
 		log.Println("STATISTICS [DELETE] :: Statistics delete")
 	}
+}
+
+func (ctrl *StatisticsController) notifyListeners(stat *model.Statistics) {
+	for _, listener := range ctrl.listeners {
+		listener.OnStatisticsUpdate(stat)
+	}
+}
+
+func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
+	ctrl.lock.Lock()
+	defer ctrl.lock.Unlock()
+
+	ctrl.stat = model.CreateStatisticsFor(poll)
+	ctrl.notifyListeners(ctrl.stat)
 }
