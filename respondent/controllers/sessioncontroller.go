@@ -1,10 +1,12 @@
-package main
+package controllers
 
 import (
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/VeselovAlex/KtoZa/model"
 
 	"github.com/satori/go.uuid"
 )
@@ -31,7 +33,7 @@ func (s *sessionPool) Contains(key string) bool {
 	return ok && res
 }
 
-// Delete удаляет сессионный ключ из памяти
+// Delete удаляет сессионный ключ из хранилища
 // Рекомендуется проверять значение ключа перед удалением
 func (s *sessionPool) Delete(key string) {
 	s.lock.RLock()
@@ -39,13 +41,30 @@ func (s *sessionPool) Delete(key string) {
 	s.lock.RUnlock()
 }
 
-var SessionPool = &sessionPool{
-	data: make(map[string]bool, 128),
-}
-
 const regKeyCookieName = "reg-key"
 
-type SessionController struct{}
+type SessionController struct {
+	sessionPool *sessionPool
+
+	lock    sync.RWMutex
+	expires time.Time
+}
+
+func NewSessionController() *SessionController {
+	return &SessionController{
+		sessionPool: &sessionPool{
+			data: make(map[string]bool, 128),
+		},
+	}
+}
+
+func (ctrl *SessionController) OnPollUpdate(poll *model.Poll) {
+	ctrl.lock.Lock()
+	if poll != nil {
+		ctrl.expires = poll.Events.EndAt
+	}
+	ctrl.lock.Unlock()
+}
 
 func (ctrl *SessionController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -59,12 +78,10 @@ func (ctrl *SessionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 func (ctrl *SessionController) handleRegister(w http.ResponseWriter, r *http.Request) {
-	key := SessionPool.New()
-	expires := func() time.Time {
-		PollStorage.lock.RLock()
-		defer PollStorage.lock.RUnlock()
-		return PollStorage.poll.Events.StartAt
-	}()
+	key := ctrl.sessionPool.New()
+	ctrl.lock.RLock()
+	expires := ctrl.expires
+	ctrl.lock.RUnlock()
 	cookie := &http.Cookie{
 		Name:    regKeyCookieName,
 		Value:   key,
@@ -86,7 +103,7 @@ func (ctrl *SessionController) handleCheckRegistration(w http.ResponseWriter, r 
 		return
 	}
 
-	if SessionPool.Contains(regCookie.Value) {
+	if ctrl.sessionPool.Contains(regCookie.Value) {
 		jsonData = "true"
 	}
 	w.Write([]byte(jsonData))

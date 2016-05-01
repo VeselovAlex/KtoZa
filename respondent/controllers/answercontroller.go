@@ -1,4 +1,4 @@
-package main
+package controllers
 
 import (
 	"encoding/json"
@@ -8,7 +8,13 @@ import (
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
-type AnswerController struct{}
+type AnswerListener interface {
+	OnNewAnswerSet(model.AnswerSet)
+}
+
+type AnswerController struct {
+	listeners []AnswerListener
+}
 
 func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -22,5 +28,18 @@ func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	StatisticsStorage.ApplyAnswerSet(answers)
+	ctrl.notifyListeners(answers)
+}
+
+func (ctrl *AnswerController) notifyListeners(ans model.AnswerSet) {
+	for _, listener := range ctrl.listeners {
+		listener.OnNewAnswerSet(ans)
+	}
+}
+
+func NewTestAnswerCtrl(listeners ...AnswerListener) *AnswerController {
+	ctrl := &AnswerController{
+		listeners: listeners,
+	}
+	return ctrl
 }

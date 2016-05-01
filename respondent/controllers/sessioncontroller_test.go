@@ -1,4 +1,4 @@
-package main
+package controllers
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestRegister(t *testing.T) {
-	regSrv := httptest.NewServer(&SessionController{})
+	regSrv := httptest.NewServer(NewSessionController())
 	body := strings.NewReader("")
 
 	// Регистрация
