@@ -53,6 +53,10 @@ func CreateStatisticsFor(poll *Poll) *Statistics {
 // JoinWith объединяет данную статистику с текущей, суммируя ответы. Если
 // статистики были объединены, обновляет LastUpdate и возвращает true
 func (stat *Statistics) JoinWith(other *Statistics) bool {
+	if other == nil {
+		return false
+	}
+
 	if !other.IsJoinableWith(stat) {
 		return false
 	}
@@ -74,6 +78,9 @@ func (stat *Statistics) JoinWith(other *Statistics) bool {
 }
 
 func JoinStatistics(one, other *Statistics) *Statistics {
+	if one == nil && other == nil {
+		return nil
+	}
 	if !other.IsJoinableWith(one) {
 		return nil
 	}
@@ -119,6 +126,12 @@ func (qs *QuestionStat) joinWith(other QuestionStat) {
 }
 
 func (stat *Statistics) IsJoinableWith(other *Statistics) bool {
+	if stat == nil {
+		return other == nil
+	}
+	if other == nil {
+		return stat == nil
+	}
 	if len(other.Questions) != len(stat.Questions) {
 		// Статистика не соответствует текущей
 		return false

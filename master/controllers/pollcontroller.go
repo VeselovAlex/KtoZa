@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/VeselovAlex/KtoZa/model"
@@ -28,14 +27,10 @@ type PollController struct {
 func NewPollController(listeners ...PollListener) *PollController {
 	poll, err := Storage.ReadPoll()
 	if err != nil {
-		if err == os.ErrNotExist {
-			poll = &model.Poll{}
-			err = Storage.WritePoll(poll)
-			if err != nil {
-				log.Fatalln("POLL CONTROLLER :: Unable to read poll data:", err)
-			}
-		} else {
-			log.Fatalln("POLL CONTROLLER :: Unable to read poll data:", err)
+		poll := &model.Poll{}
+		err = Storage.WritePoll(poll)
+		if err != nil {
+			log.Fatalln("POLL CONTROLLER :: Unable to init poll data:", err)
 		}
 	}
 
