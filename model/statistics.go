@@ -1,7 +1,6 @@
 package model
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -16,8 +15,6 @@ type Statistics struct {
 
 	// Число принятых ответов
 	RespondentsCount int `json:"respondents"`
-
-	poll *Poll
 
 	// Грубая блокировка
 	Lock sync.RWMutex `json:"-"`
@@ -43,7 +40,6 @@ func CreateStatisticsFor(poll *Poll) *Statistics {
 	stat := &Statistics{
 		LastUpdate: time.Now(),
 		Questions:  make([]QuestionStat, len(poll.Questions)),
-		poll:       poll,
 	}
 	for i, question := range poll.Questions {
 		stat.Questions[i].Options = make([]OptionStat, len(question.Options))
@@ -100,16 +96,13 @@ func (stat *Statistics) isJoinableWith(other *Statistics) bool {
 // корректности набора применяет его к текущей статистике. Если
 // набор был применен, обновляет LastUpdate и возвращает true
 func (stat *Statistics) ApplyAnswerSet(ans AnswerSet) bool {
-	log.Println("Got answer", ans)
 	if !stat.isValidAnswerSet(ans) {
 		return false
 	}
 
 	sliceAns := []Answer(ans)
 	hasUpdates := len(sliceAns) > 0
-	log.Println("updates", hasUpdates)
 	for i, ans := range sliceAns {
-		log.Println("applying answer")
 		stat.Questions[i].applyAnswer(ans)
 
 	}
@@ -117,7 +110,6 @@ func (stat *Statistics) ApplyAnswerSet(ans AnswerSet) bool {
 	if hasUpdates {
 		stat.RespondentsCount++
 		stat.LastUpdate = time.Now()
-		log.Println("Applied answer", ans)
 	}
 	return hasUpdates
 }
@@ -131,10 +123,9 @@ func (qs *QuestionStat) applyAnswer(ans Answer) {
 }
 
 func (stat *Statistics) isValidAnswerSet(ansSet AnswerSet) bool {
-	log.Println("validation")
 	ansSetAsSlice := []Answer(ansSet)
 	if len(stat.Questions) != len(ansSetAsSlice) {
 		return false
 	}
-	return stat.poll.IsValidAnswerSet(ansSet)
+	return true
 }

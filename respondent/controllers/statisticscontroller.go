@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -52,9 +51,7 @@ func NewTestStatCtrl(listeners ...StatisticsListener) *StatisticsController {
 func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
-	ctrl.stat = &model.Statistics{
-		LastUpdate: time.Now(),
-	}
+	ctrl.stat = model.CreateStatisticsFor(poll)
 	ctrl.notifyListeners(ctrl.stat)
 }
 

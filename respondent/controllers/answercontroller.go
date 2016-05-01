@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -14,6 +15,9 @@ type AnswerListener interface {
 
 type AnswerController struct {
 	listeners []AnswerListener
+
+	lock      sync.RWMutex
+	validator Validator
 }
 
 func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +32,23 @@ func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	ctrl.notifyListeners(answers)
+
+	// Проверка ответов
+	valid := func() bool {
+		ctrl.lock.RLock()
+		defer ctrl.lock.RUnlock()
+		if ctrl.validator.IsValid(answers) {
+			return true
+		}
+		return false
+	}()
+
+	if valid {
+		w.Write([]byte("true"))
+		ctrl.notifyListeners(answers)
+	} else {
+		w.Write([]byte("false"))
+	}
 }
 
 func (ctrl *AnswerController) notifyListeners(ans model.AnswerSet) {
@@ -42,4 +62,10 @@ func NewTestAnswerCtrl(listeners ...AnswerListener) *AnswerController {
 		listeners: listeners,
 	}
 	return ctrl
+}
+
+func (ctrl *AnswerController) OnPollUpdate(poll *model.Poll) {
+	ctrl.lock.Lock()
+	defer ctrl.lock.Unlock()
+	ctrl.validator = NewValidatorFor(poll)
 }
