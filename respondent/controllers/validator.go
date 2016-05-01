@@ -7,7 +7,7 @@ type AnswerValidator interface {
 }
 
 // NewAnswerValidatorFor создает валидатор для заданного вопроса
-func NewAnswerValidatorFor(q *model.Question) AnswerValidator {
+func NewAnswerValidatorFor(q model.Question) AnswerValidator {
 	switch q.Type {
 	case model.TypeSingleOptionQuestion:
 		return singleOptionValidator{max: len(q.Options) - 1}
@@ -74,5 +74,9 @@ func (v Validator) IsValid(set model.AnswerSet) bool {
 // NewValidatorFor создает валидатор для заданного опроса
 func NewValidatorFor(poll *model.Poll) Validator {
 	var validator Validator
+	validator.ansValidators = make([]AnswerValidator, len(poll.Questions))
+	for i, q := range poll.Questions {
+		validator.ansValidators[i] = NewAnswerValidatorFor(q)
+	}
 	return validator
 }

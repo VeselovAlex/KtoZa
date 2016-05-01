@@ -5,8 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"path"
 	"sync"
 	"time"
 
@@ -54,6 +52,19 @@ func (ctrl *PollController) notifyListeners(poll *model.Poll) {
 	}
 }
 
+func (ctrl *PollController) listenToMaster() {
+	updWith := func(poll *model.Poll) {
+		ctrl.lock.Lock()
+		defer ctrl.lock.Unlock()
+		ctrl.poll = poll
+		ctrl.notifyListeners(ctrl.poll)
+	}
+	for {
+		poll := MasterServer.AwaitPollUpdate()
+		updWith(poll)
+	}
+}
+
 func (ctrl *PollController) doReadPollFrom(r io.Reader) bool {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
@@ -68,23 +79,23 @@ func (ctrl *PollController) doReadPollFrom(r io.Reader) bool {
 }
 
 func NewTestPollCtrl(listeners ...PollListener) *PollController {
-	src, err := os.Open(path.Join("testdata", "poll.json"))
+	poll, err := MasterServer.GetPoll()
 	if err != nil {
-		log.Fatalln("POLL CONTROLLER :: Initialization failed:", err)
+		log.Fatalln("POLL CONTROLLER :: Unable to get data from server:", err)
 	}
-	defer src.Close()
 
 	ctrl := &PollController{
 		listeners: listeners,
+		poll:      poll,
 	}
-	ok := ctrl.doReadPollFrom(src)
-	if !ok {
-		log.Fatalln("POLL CONTROLLER :: Initialization failed:", err)
-	}
+
+	// Для отладки, удалить после
 	now := time.Now()
 	ctrl.poll.Events.RegistrationAt = now.Add(5 * time.Second)
 	ctrl.poll.Events.StartAt = now.Add(10 * time.Second)
 	ctrl.poll.Events.EndAt = now.Add(30 * time.Second)
+	//
 	ctrl.notifyListeners(ctrl.poll)
+	go ctrl.listenToMaster()
 	return ctrl
 }

@@ -70,6 +70,44 @@ func (stat *Statistics) JoinWith(other *Statistics) bool {
 	return hasUpdates
 }
 
+func JoinStatistics(one, other *Statistics) *Statistics {
+	if !other.isJoinableWith(one) {
+		return nil
+	}
+	ret := &Statistics{
+		LastUpdate:       time.Now(),
+		Questions:        make([]QuestionStat, len(one.Questions)),
+		RespondentsCount: one.RespondentsCount + other.RespondentsCount,
+	}
+
+	for i, oneStat := range one.Questions {
+		options := make([]OptionStat, len(oneStat.Options))
+		otherStat := other.Questions[i]
+		for j, oneOpt := range oneStat.Options {
+			otherOpt := otherStat.Options[j]
+			options[j].Count = oneOpt.Count + otherOpt.Count
+		}
+		ret.Questions[i].Options = options
+		ret.Questions[i].AnswersCount = oneStat.AnswersCount + otherStat.AnswersCount
+	}
+	return ret
+}
+
+func (stat *Statistics) CopyTo(dst *Statistics) {
+	if dst == nil {
+		panic("Statistics copy dst is nil")
+	}
+	dst.LastUpdate = stat.LastUpdate
+	dst.RespondentsCount = stat.RespondentsCount
+
+	dst.Questions = make([]QuestionStat, len(stat.Questions))
+	copy(dst.Questions, stat.Questions)
+	for i, q := range stat.Questions {
+		dst.Questions[i].Options = make([]OptionStat, len(q.Options))
+		copy(dst.Questions[i].Options, q.Options)
+	}
+}
+
 func (qs *QuestionStat) joinWith(other QuestionStat) {
 	for i, os := range other.Options {
 		qs.Options[i].Count += os.Count

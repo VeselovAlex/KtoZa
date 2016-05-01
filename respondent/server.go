@@ -41,10 +41,12 @@ func init() {
 
 	logListener := &LogListener{}
 
+	controllers.ConnectToMaster("")
 	App.StatisticsController = controllers.NewTestStatCtrl(logListener)
 	App.SessionController = controllers.NewSessionController()
-	App.PollController = controllers.NewTestPollCtrl(logListener, App.StatisticsController, App.SessionController)
 	App.AnswerController = controllers.NewTestAnswerCtrl(logListener, App.StatisticsController)
+	App.PollController = controllers.NewTestPollCtrl(logListener, App.StatisticsController,
+		App.SessionController, App.AnswerController)
 }
 
 func main() {
