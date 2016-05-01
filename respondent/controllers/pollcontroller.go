@@ -2,9 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"sync"
+	"time"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -50,13 +54,37 @@ func (ctrl *PollController) notifyListeners(poll *model.Poll) {
 	}
 }
 
+func (ctrl *PollController) doReadPollFrom(r io.Reader) bool {
+	ctrl.lock.Lock()
+	defer ctrl.lock.Unlock()
+	poll := &model.Poll{}
+	err := json.NewDecoder(r).Decode(poll)
+	if err != nil {
+		log.Println("POLL CONTROLLER :: Unable to read poll:", err)
+		return false
+	}
+	ctrl.poll = poll
+	return true
+}
+
 func NewTestPollCtrl(listeners ...PollListener) *PollController {
+	src, err := os.Open(path.Join("testdata", "poll.json"))
+	if err != nil {
+		log.Fatalln("POLL CONTROLLER :: Initialization failed:", err)
+	}
+	defer src.Close()
+
 	ctrl := &PollController{
-		poll: &model.Poll{
-			Title: "Test poll",
-		},
 		listeners: listeners,
 	}
+	ok := ctrl.doReadPollFrom(src)
+	if !ok {
+		log.Fatalln("POLL CONTROLLER :: Initialization failed:", err)
+	}
+	now := time.Now()
+	ctrl.poll.Events.RegistrationAt = now.Add(5 * time.Second)
+	ctrl.poll.Events.StartAt = now.Add(10 * time.Second)
+	ctrl.poll.Events.EndAt = now.Add(30 * time.Second)
 	ctrl.notifyListeners(ctrl.poll)
 	return ctrl
 }

@@ -48,6 +48,7 @@ func NewTestStatCtrl(listeners ...StatisticsListener) *StatisticsController {
 	}
 }
 
+// OnPollUpdate обновляет состояние контроллера при изменении опроса
 func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
@@ -57,12 +58,17 @@ func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.notifyListeners(ctrl.stat)
 }
 
+// OnNewAnswerSet обновляет состояние контроллера при получении ответа
 func (ctrl *StatisticsController) OnNewAnswerSet(ans model.AnswerSet) {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
-	ctrl.stat = &model.Statistics{
-		LastUpdate: time.Now(),
+	applied := ctrl.stat.ApplyAnswerSet(ans)
+	if applied {
+		ctrl.onStatUpdated()
 	}
+}
+
+func (ctrl *StatisticsController) onStatUpdated() {
 	ctrl.notifyListeners(ctrl.stat)
 }
 
