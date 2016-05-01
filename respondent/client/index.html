@@ -1,87 +1,15 @@
 <!DOCTYPE html>
+
 <meta charset="utf-8">
-<title>KtoZa: платформа опросов</title>
-<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular.js"></script>
-<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.2/angular-route.js"></script>
 
-<script src="scripts/ktoza-respondent.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.2/react.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.2/react-dom.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 
-<style>
-  .splashscreen {
-    background-color: white;
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding-top: 40vh;
-    font-size: 200%;
-    text-align: center;
-  }
-  
-  ul {
-    list-style: none;
-  }
-  
-  li.option {
-    padding: 0;
-    margin: 0;
-    margin-bottom: 0.2em;
-    cursor: pointer;
-  }
-  
-  .question {
-    cursor: pointer;
-    border: 1px solid #aaa;
-    border-radius: 1em;
-    padding: 0.5em;
-    margin-bottom: 1em;
-  }
-  
-  .question.answered {
-    background-color: lightgreen;
-  }
-  
-  .option:hover {
-    text-decoration: underline;
-  }
-  
-  .question * {
-    margin: 0;
-    padding: 0;
-  }
-  
-  .question h3 {
-    margin-bottom: 1em;
-  }
-</style>
+<!-- application source -->
+<script type="text/babel" src="respondent.js"></script>
 
-<body ng-app="ktoza-respondent" ng-controller="PollController as pollCtrl">
-  <div class="splashscreen" ng-hide="pollCtrl.state !== ''">
-    Загрузка...
-  </div>
-  <header>
-    <h1 ng-bind="pollCtrl.poll.title"></h1>
-    <div class="timings">
-      <div>
-        Начало регистрации: 
-        <span ng-bind="pollCtrl.poll.events.registration | date:'dd.MM.yyyy в HH.mm.ss'"></span>
-      </div>
-      <div>
-        Завершение регистрации и начало опроса: 
-        <span ng-bind="pollCtrl.poll.events.start | date:'dd.MM.yyyy в HH.mm.ss'"></span>
-      </div>
-      <div>
-        Завершение опроса: 
-        <span ng-bind="pollCtrl.poll.events.end | date:'dd.MM.yyyy в HH.mm.ss'"></span>
-      </div>
-    </div>
-    <nav>
-       <a href="#/intro">Intro</a>
-       <a href="#/register">Reg</a>
-       <a href="#/poll">Poll</a>
-       <a href="#/finish">Finish</a>
-    </nav>
-  </header>
-  <div ng-view></div>
-</body>
+<h1>Привет</h1>
+<section id="poll"></section>
+<div id="view"></div>

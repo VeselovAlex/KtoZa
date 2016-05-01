@@ -48,10 +48,25 @@ func (st *masterPollStorage) Get() *model.Poll {
 	return poll
 }
 
-func (st *masterPollStorage) CreateOrUpdate(poll *model.Poll) *model.Poll {
+func (st *masterPollStorage) CreateOrUpdate(poll *model.Poll) *model.Poll { /*
+		os.Mkdir("data", 0700)
+		file, err := os.Create("data/poll.json")
+		if err != nil {
+			log.Println("POLLSTORAGE :: Error:", err)
+			return nil
+		}
+		if file != nil {
+			defer file.Close()
+		}*/
 	st.lock.Lock()
+	defer st.lock.Unlock()
+	/*
+		err = json.NewEncoder(file).Encode(poll)
+		if err != nil {
+			log.Println("POLLSTORAGE :: Error:", err)
+			return nil
+		}*/
 	st.poll = poll
-	st.lock.Unlock()
 	return poll
 }
 

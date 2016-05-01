@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/satori/go.uuid"
 )
@@ -59,10 +60,15 @@ func (ctrl *SessionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 func (ctrl *SessionController) handleRegister(w http.ResponseWriter, r *http.Request) {
 	key := SessionPool.New()
+	expires := func() time.Time {
+		PollStorage.lock.RLock()
+		defer PollStorage.lock.RUnlock()
+		return PollStorage.poll.Events.StartAt
+	}()
 	cookie := &http.Cookie{
 		Name:    regKeyCookieName,
 		Value:   key,
-		Expires: App.PollStorage.Get().Events.EndAt,
+		Expires: expires,
 	}
 	http.SetCookie(w, cookie)
 	w.Write([]byte("registered"))

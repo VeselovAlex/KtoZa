@@ -72,45 +72,41 @@ func TestJoinWith(t *testing.T) {
 
 func TestApplyAnswerSet(t *testing.T) {
 	now := time.Now()
-	stat := &Statistics{
-		LastUpdate:       now,
-		RespondentsCount: 10,
-		Questions: []QuestionStat{
-			QuestionStat{
-				AnswersCount: 5,
-				Options: []OptionStat{
-					OptionStat{
-						Count: 5,
-					},
-				},
+	poll := &Poll{
+		Questions: []Question{
+			Question{
+				Type:    TypeSingleOptionQuestion,
+				Options: []string{"0", "1"},
 			},
 		},
 	}
 
+	stat := CreateStatisticsFor(poll)
+
 	ansSet := AnswerSet([]Answer{
-		Answer([]int{0}),
+		Answer([]int{1}),
 	})
 
 	// Чтобы проверить изменение времени последнего обновления
 	time.Sleep(100 * time.Millisecond)
 	stat.ApplyAnswerSet(ansSet)
 
-	if stat.RespondentsCount != 11 {
+	if stat.RespondentsCount != 1 {
 		t.Errorf("RespondentsCount mismatch: expected %d, got %d\n",
-			11,
+			1,
 			stat.RespondentsCount)
 	}
 
-	if stat.Questions[0].AnswersCount != 6 {
+	if stat.Questions[0].AnswersCount != 1 {
 		t.Errorf("Answers count mismatch: expected %d, got %d\n",
-			6,
+			1,
 			stat.Questions[0].AnswersCount)
 	}
 
-	if stat.Questions[0].Options[0].Count != 6 {
+	if stat.Questions[0].Options[1].Count != 1 {
 		t.Errorf("Option count mismatch: expected %d, got %d\n",
-			6,
-			stat.Questions[0].Options[0].Count)
+			1,
+			stat.Questions[0].Options[1].Count)
 	}
 
 	if !stat.LastUpdate.After(now) {

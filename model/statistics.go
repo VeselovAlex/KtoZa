@@ -1,6 +1,7 @@
 package model
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -99,40 +100,41 @@ func (stat *Statistics) isJoinableWith(other *Statistics) bool {
 // корректности набора применяет его к текущей статистике. Если
 // набор был применен, обновляет LastUpdate и возвращает true
 func (stat *Statistics) ApplyAnswerSet(ans AnswerSet) bool {
+	log.Println("Got answer", ans)
 	if !stat.isValidAnswerSet(ans) {
 		return false
 	}
 
 	sliceAns := []Answer(ans)
-	hasUpdates := false
+	hasUpdates := len(sliceAns) > 0
+	log.Println("updates", hasUpdates)
 	for i, ans := range sliceAns {
+		log.Println("applying answer")
 		stat.Questions[i].applyAnswer(ans)
-		hasUpdates = true
+
 	}
 
 	if hasUpdates {
 		stat.RespondentsCount++
 		stat.LastUpdate = time.Now()
+		log.Println("Applied answer", ans)
 	}
 	return hasUpdates
 }
 
 func (qs *QuestionStat) applyAnswer(ans Answer) {
 	ansAsSlice := []int(ans)
-	for i := range ansAsSlice {
-		qs.Options[i].Count++
+	for _, option := range ansAsSlice {
+		qs.Options[option].Count++
 	}
 	qs.AnswersCount++
 }
 
 func (stat *Statistics) isValidAnswerSet(ansSet AnswerSet) bool {
+	log.Println("validation")
 	ansSetAsSlice := []Answer(ansSet)
 	if len(stat.Questions) != len(ansSetAsSlice) {
 		return false
 	}
-
-	for range ansSetAsSlice {
-		//checkValidAnswer
-	}
-	return true
+	return stat.poll.IsValidAnswerSet(ansSet)
 }

@@ -24,7 +24,7 @@ func (st *masterStatStorage) Get() *model.Statistics {
 	st.lock.RLock()
 	stat := st.stat
 	st.lock.RUnlock()
-	return st.stat
+	return stat
 }
 
 func (st *masterStatStorage) CreateOrJoinWith(stat *model.Statistics) *model.Statistics {

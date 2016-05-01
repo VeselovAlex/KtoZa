@@ -1,56 +1,63 @@
 package main
 
 import (
-	"log"
+	"encoding/json"
+	"io"
+	"sync"
 	"time"
 
-	common "github.com/VeselovAlex/KtoZa"
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
+var PollStorage = NewDummyPollStorage()
+
 // NewDummyPollStorage возвращает интерфейс хранилища опросов для отладки
-func NewDummyPollStorage() common.PollStorage {
+/*func NewDummyPollStorage() common.PollStorage {
+	resp, err := http.Get("http://localhost:8888/api/poll")
+	if err != nil {
+		log.Fatalln("Bad master connection")
+	}
+	poll := &model.Poll{}
+	err = json.NewDecoder(resp.Body).Decode(poll)
+	if err != nil {
+		log.Fatalln("Bad master response")
+	}
+	log.Println("got poll", poll.Title)
+	return &dummyPollStorage{poll}
+}*/
+
+func NewDummyPollStorage() *dummyPollStorage {
 	return &dummyPollStorage{
-		&model.Poll{
-			Title:   "Dummy poll",
-			Caption: "Простой опрос для тестирования",
-			Events: model.EventTimings{
-				RegistrationAt: time.Now().Add(5 * time.Second),
-				StartAt:        time.Now().Add(35 * time.Second),
-				EndAt:          time.Now().Add(95 * time.Second),
-			},
+		poll: &model.Poll{
+			Title: "Dummy",
 			Questions: []model.Question{
 				model.Question{
-					Text:    "Вопрос 1",
-					Type:    "single-option",
-					Options: []string{"Yes", "No"},
+					Type:    model.TypeSingleOptionQuestion,
+					Text:    "Select 0 or 1",
+					Options: []string{"0", "1"},
 				},
-				model.Question{
-					Text:    "Вопрос 2",
-					Type:    "multi-option",
-					Options: []string{"One", "Two", "Three"},
-				},
+			},
+			Events: model.EventTimings{
+				EndAt: time.Now(),
 			},
 		},
 	}
 }
 
 type dummyPollStorage struct {
+	lock sync.RWMutex
 	poll *model.Poll
 }
 
-func (st *dummyPollStorage) Get() *model.Poll {
-	log.Println("Dummy poll storage Get()")
-	return st.poll
+func (storage *dummyPollStorage) Get() *model.Poll {
+	storage.lock.RLock()
+	retVal := storage.poll
+	storage.lock.RUnlock()
+	return retVal
 }
 
-func (st *dummyPollStorage) CreateOrUpdate(poll *model.Poll) *model.Poll {
-	log.Println("Dummy poll storage CreateOrUpdate()")
-	st.poll = poll
-	return poll
-}
-
-func (st *dummyPollStorage) Delete() *model.Poll {
-	log.Println("Dummy poll storage Delete()")
-	return st.Get()
+func (storage *dummyPollStorage) WriteJSON(w io.Writer) error {
+	storage.lock.RLock()
+	defer storage.lock.RUnlock()
+	return json.NewEncoder(w).Encode(storage.poll)
 }
