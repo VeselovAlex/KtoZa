@@ -7,6 +7,7 @@ import (
 
 	"github.com/VeselovAlex/KtoZa/model"
 
+	common "github.com/VeselovAlex/KtoZa"
 	"golang.org/x/net/websocket"
 )
 
@@ -102,7 +103,7 @@ type connection struct {
 
 func (c *connection) read() {
 	for {
-		raw := eventRawMessage{}
+		raw := common.EventRawMessage{}
 		err := websocket.JSON.Receive(c.socket, &raw)
 		if err != nil {
 			log.Println("RESPONDENTS :: Bad connection response,", err, "[closing]")
@@ -141,8 +142,8 @@ func NewRespondentsUpdateListener() *RespondentsUpdateListener {
 }
 
 func (l *RespondentsUpdateListener) OnPollUpdate(poll *model.Poll) {
-	Respondents.NotifyAll(About.UpdatedPoll(poll))
+	Respondents.NotifyAll(common.Wrap.UpdatedPoll(poll))
 }
 func (l *RespondentsUpdateListener) OnStatisticsUpdate(stat *model.Statistics) {
-	Respondents.NotifyAll(About.UpdatedStatistics(stat))
+	Respondents.NotifyAll(common.Wrap.UpdatedStatistics(stat))
 }

@@ -11,6 +11,8 @@ import (
 	"golang.org/x/net/websocket"
 
 	"github.com/VeselovAlex/KtoZa/model"
+
+	common "github.com/VeselovAlex/KtoZa"
 )
 
 var MasterServer *master
@@ -95,7 +97,7 @@ func (m *master) write() {
 	const maxBadsInRow = 3
 	badsInRow := 0
 	for cache := range m.caches {
-		msg := About.NewAnswerCache(cache).(eventMessage)
+		msg := common.Wrap.NewAnswerCache(cache)
 		err := websocket.JSON.Send(m.conn, msg)
 		if err != nil {
 			badsInRow++
@@ -114,7 +116,7 @@ func (m *master) read() {
 	const maxBadsInRow = 3
 	badsInRow := 0
 	for {
-		msg := &eventRawMessage{}
+		msg := &common.EventRawMessage{}
 		err := websocket.JSON.Receive(m.conn, msg)
 		if err != nil {
 			badsInRow++
@@ -122,12 +124,12 @@ func (m *master) read() {
 			if badsInRow >= maxBadsInRow {
 				log.Fatalf("MASTER SERVER :: Server dropped after %d bad connections in row reached\n", badsInRow)
 			}
-			time.Sleep(10 * time.Second)
+			time.Sleep(time.Second)
 			continue
 		}
 		badsInRow = 0
 		switch msg.Event {
-		case EventUpdatedPoll:
+		case common.EventUpdatedPoll:
 			poll := &model.Poll{}
 			err = json.Unmarshal(msg.Data, poll)
 			if err != nil {
@@ -136,7 +138,7 @@ func (m *master) read() {
 				m.polls <- poll
 				log.Println("MASTER SERVER :: Got updated poll")
 			}
-		case EventUpdatedStatistics:
+		case common.EventUpdatedStatistics:
 			stat := &model.Statistics{}
 			err = json.Unmarshal(msg.Data, stat)
 			if err != nil {

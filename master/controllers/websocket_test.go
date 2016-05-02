@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	common "github.com/VeselovAlex/KtoZa"
 	"golang.org/x/net/websocket"
 )
 
@@ -16,7 +17,7 @@ type testNotificator struct {
 }
 
 func (n *testNotificator) NotifyAll(msg interface{}) {
-	about, ok := msg.(eventMessage)
+	about, ok := msg.(common.EventRawMessage)
 	if ok {
 		n.t.Log("NOTIFICATOR :: Received notification about", about.Event)
 	} else {
@@ -51,7 +52,7 @@ func TestWebSocketConn(t *testing.T) {
 				return
 			}
 
-			err = websocket.JSON.Send(conn, About.UpdatedPoll(nil))
+			err = websocket.JSON.Send(conn, common.Wrap.UpdatedPoll(nil))
 			if err != nil {
 				t.Error("Unable to send data")
 			}

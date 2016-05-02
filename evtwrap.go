@@ -6,7 +6,7 @@ import (
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
-var About *eventMessageWrapper
+var Wrap *eventMessageWrapper
 
 type eventMessageWrapper struct{}
 
@@ -15,7 +15,7 @@ type eventMessage struct {
 	Data  interface{} `json:"data"`
 }
 
-type eventRawMessage struct {
+type EventRawMessage struct {
 	Event string          `json:"event"`
 	Data  json.RawMessage `json:"data"`
 }

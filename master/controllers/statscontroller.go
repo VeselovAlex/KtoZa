@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/VeselovAlex/KtoZa/model"
+
+	common "github.com/VeselovAlex/KtoZa"
 )
 
 type StatisticsListener interface {
@@ -103,8 +105,8 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 		}
 	}
 	for {
-		msg, ok := Respondents.Await().(eventRawMessage)
-		if !ok || msg.Event != EventNewAnswerCache {
+		msg, ok := Respondents.Await().(common.EventRawMessage)
+		if !ok || msg.Event != common.EventNewAnswerCache {
 			log.Println("STATISTICS CTRL :: Bad message got from respondent")
 			if !ok {
 				log.Println("STATISTICS CTRL :: Bad message casting")
