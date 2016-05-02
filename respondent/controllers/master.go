@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -25,29 +26,43 @@ type master struct {
 	polls  chan *model.Poll
 	caches chan *model.Statistics
 
-	conn *websocket.Conn
+	errWriting chan error
 
 	lock sync.RWMutex
-	stat *model.Statistics
+	conn *websocket.Conn
 }
 
 // ConnectToMaster инициализирует прокси M-Сервера с данным URL
 func ConnectToMaster(urlString string) {
 	MasterServer = &master{
-		hostUrl: urlString,
-		stats:   make(chan *model.Statistics, 8),
-		caches:  make(chan *model.Statistics, 8),
-		polls:   make(chan *model.Poll, 8),
+		hostUrl:    urlString,
+		stats:      make(chan *model.Statistics, 8),
+		caches:     make(chan *model.Statistics, 8),
+		polls:      make(chan *model.Poll, 8),
+		errWriting: make(chan error),
 	}
 
-	url := strings.Replace(MasterServer.hostUrl, "http:", "ws:", 1) + "/api/ws"
-	conn, err := websocket.Dial(url, "", MasterServer.hostUrl)
-	if err != nil {
-		log.Fatalln("MASTER SERVER :: Unable to connect:", err)
-	}
-	MasterServer.conn = conn
+	MasterServer.tryConnect()
 	go MasterServer.read()
 	go MasterServer.write()
+}
+
+func (m *master) decodePoll(from []byte) (*model.Poll, error) {
+	if string(from[:4]) == "null" {
+		return nil, nil
+	}
+	poll := &model.Poll{}
+	err := json.Unmarshal(from, poll)
+	return poll, err
+}
+
+func (m *master) decodeStat(from []byte) (*model.Statistics, error) {
+	if string(from[:4]) == "null" {
+		return nil, nil
+	}
+	stat := &model.Statistics{}
+	err := json.Unmarshal(from, stat)
+	return stat, err
 }
 
 // GetPoll запрашивает данные опроса с M-Сервера. Если данные успешно получены, возвращает
@@ -57,13 +72,11 @@ func (m *master) GetPoll() (*model.Poll, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	poll := &model.Poll{}
-	err = json.NewDecoder(resp.Body).Decode(poll)
+	buf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	return poll, nil
+	return m.decodePoll(buf)
 }
 
 // GetPoll запрашивает данные статистики с M-Сервера. Если данные успешно получены, возвращает
@@ -73,13 +86,11 @@ func (m *master) GetStatistics() (*model.Statistics, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	stat := &model.Statistics{}
-	err = json.NewDecoder(resp.Body).Decode(stat)
+	buf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	return stat, nil
+	return m.decodeStat(buf)
 }
 
 // AwaitPollUpdate ожидает изменение опроса и возвращает экземпляр изменненного опроса
@@ -92,55 +103,65 @@ func (m *master) AwaitStatisticsUpdate() *model.Statistics {
 	return <-m.stats
 }
 
-// SendAnswerCache асинхронно отправляет заданный кэш статистики
-func (m *master) SendAnswerCache(cache *model.Statistics) {
+// SendAnswerCache отправляет заданный кэш статистики
+func (m *master) SendAnswerCache(cache *model.Statistics) error {
 	if cache == nil {
-		return
+		return nil
 	}
 	cpy := &model.Statistics{}
 	cache.CopyTo(cpy)
 	m.caches <- cpy
+	return <-m.errWriting
+}
+
+func (m *master) tryConnect() {
+	duration := time.Second
+	url := strings.Replace(m.hostUrl, "http:", "ws:", 1) + "/api/ws"
+	for {
+		log.Println("MASTER SERVER :: Trying to connect ...")
+		conn, err := websocket.Dial(url, "", "http://localhost:8080")
+		if err == nil {
+			m.lock.Lock()
+			m.conn = conn
+			m.lock.Unlock()
+			log.Println("MASTER SERVER :: Connected")
+			return
+		}
+		log.Println("MASTER SERVER :: Connection failed:", err)
+		time.Sleep(duration)
+	}
 }
 
 func (m *master) write() {
-	const maxBadsInRow = 3
-	badsInRow := 0
 	for cache := range m.caches {
-		msg := common.Wrap.NewAnswerCache(cache)
-		err := websocket.JSON.Send(m.conn, msg)
-		if err != nil {
-			badsInRow++
-			log.Println("MASTER SERVER :: Connection lost:", err)
-			if badsInRow >= maxBadsInRow {
-				log.Fatalf("MASTER SERVER :: Server dropped after %d bad connections in row reached\n", badsInRow)
-			}
+		if cache == nil {
 			continue
 		}
-		badsInRow = 0
-		log.Println("MASTER SERVER :: Answer cache submitted successfully")
+		msg := common.Wrap.NewAnswerCache(cache)
+		err := func() error {
+			m.lock.RLock()
+			defer m.lock.RUnlock()
+			return websocket.JSON.Send(m.conn, msg)
+		}()
+		if err != nil {
+			log.Println("MASTER SERVER :: Connection lost:", err)
+		}
+		m.errWriting <- err
 	}
 }
 
 func (m *master) read() {
-	const maxBadsInRow = 3
-	badsInRow := 0
 	for {
 		msg := &common.EventRawMessage{}
 		err := websocket.JSON.Receive(m.conn, msg)
 		if err != nil {
-			badsInRow++
-			log.Println("MASTER SERVER :: Bad connection:", err)
-			if badsInRow >= maxBadsInRow {
-				log.Fatalf("MASTER SERVER :: Server dropped after %d bad connections in row reached\n", badsInRow)
-			}
-			time.Sleep(time.Second)
+			log.Println("MASTER SERVER :: Connection lost:", err)
+			m.tryConnect()
 			continue
 		}
-		badsInRow = 0
 		switch msg.Event {
 		case common.EventUpdatedPoll:
-			poll := &model.Poll{}
-			err = json.Unmarshal(msg.Data, poll)
+			poll, err := m.decodePoll(msg.Data)
 			if err != nil {
 				log.Println("MASTER SERVER :: Bad poll message, skip")
 			} else {
@@ -148,8 +169,7 @@ func (m *master) read() {
 				log.Println("MASTER SERVER :: Got updated poll")
 			}
 		case common.EventUpdatedStatistics:
-			stat := &model.Statistics{}
-			err = json.Unmarshal(msg.Data, stat)
+			stat, err := m.decodeStat(msg.Data)
 			if err != nil {
 				log.Println("MASTER SERVER :: Bad statistics message, skip")
 			} else {

@@ -69,5 +69,7 @@ func NewAnswerController(listeners ...AnswerListener) *AnswerController {
 func (ctrl *AnswerController) OnPollUpdate(poll *model.Poll) {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
-	ctrl.validator = NewValidatorFor(poll)
+	if poll != nil {
+		ctrl.validator = NewValidatorFor(poll)
+	}
 }

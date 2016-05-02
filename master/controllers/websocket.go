@@ -87,6 +87,7 @@ func (pubSub *wsPubSubPool) NotifyAll(data interface{}) {
 
 func (pubSub *wsPubSubPool) Await() interface{} {
 	data := <-pubSub.read
+	log.Println("DATA :: ", data)
 	log.Println("RESPONDENTS :: Got new message")
 	return data
 }

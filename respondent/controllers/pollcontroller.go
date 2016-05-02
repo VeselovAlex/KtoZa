@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -37,10 +36,10 @@ func NewPollController(listeners ...PollListener) *PollController {
 	}
 
 	// Для отладки, удалить после
-	now := time.Now()
-	ctrl.poll.Events.RegistrationAt = now.Add(5 * time.Second)
-	ctrl.poll.Events.StartAt = now.Add(10 * time.Second)
-	ctrl.poll.Events.EndAt = now.Add(30 * time.Second)
+	//now := time.Now()
+	//ctrl.poll.Events.RegistrationAt = now.Add(5 * time.Second)
+	//ctrl.poll.Events.StartAt = now.Add(10 * time.Second)
+	//ctrl.poll.Events.EndAt = now.Add(30 * time.Second)
 	//
 	ctrl.notifyListeners(ctrl.poll)
 	go ctrl.listenToMaster()

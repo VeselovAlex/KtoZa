@@ -116,10 +116,6 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 	for {
 		msg, ok := Respondents.Await().(common.EventRawMessage)
 		if !ok || msg.Event != common.EventNewAnswerCache {
-			log.Println("STATISTICS CTRL :: Bad message got from respondent")
-			if !ok {
-				log.Println("STATISTICS CTRL :: Bad message casting")
-			}
 			continue
 		}
 		cache := &model.Statistics{}
@@ -129,6 +125,6 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 			continue
 		}
 		apply(cache)
-		log.Println("STATISTICS CTRL :: Applied answer")
+		log.Println("STATISTICS CTRL :: Applied cache")
 	}
 }
