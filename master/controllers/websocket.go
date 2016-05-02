@@ -37,7 +37,7 @@ func (pubSub *wsPubSubPool) Subscribe(client io.ReadWriteCloser) {
 	if ok {
 		pubSub.socketSubscribe(socket)
 	} else {
-		log.Println("Not websocket connection, aborted")
+		log.Println("RESPONDENTS :: Not websocket connection, aborted")
 	}
 }
 
@@ -64,7 +64,9 @@ func (pubSub *wsPubSubPool) NotifyAll(data interface{}) {
 }
 
 func (pubSub *wsPubSubPool) Await() interface{} {
-	return <-pubSub.read
+	data := <-pubSub.read
+	log.Println("RESPONDENTS :: Got new message")
+	return data
 }
 
 func (pubSub *wsPubSubPool) run() {
@@ -76,8 +78,8 @@ func (pubSub *wsPubSubPool) run() {
 			delete(pubSub.clients, c)
 			close(c.send)
 		case c := <-pubSub.subscribe:
-			// Добавление клиента
 			pubSub.clients[c] = true
+			log.Println("RESPONDENTS :: New R-server connection")
 		case data := <-pubSub.publish:
 			for c := range pubSub.clients {
 				select {
@@ -100,16 +102,16 @@ type connection struct {
 
 func (c *connection) read() {
 	for {
-		msg := &eventMessage{}
-		err := websocket.JSON.Receive(c.socket, msg)
+		msg := eventMessage{}
+		err := websocket.JSON.Receive(c.socket, &msg)
 		if err != nil {
-			log.Println("WEBSOCKET PUB/SUB :: Bad connection response,", err, "[closing]")
+			log.Println("RESPONDENTS :: Bad connection response,", err, "[closing]")
 			break
 		}
-		log.Println("Got", msg)
+		c.pool.read <- msg
 	}
 	c.socket.Close()
-	log.Println("Closed (reading)")
+	log.Println("RESPONDENTS :: Connection closed (reading)")
 }
 
 func (c *connection) write() {
@@ -118,10 +120,10 @@ func (c *connection) write() {
 		if err != nil {
 			break
 		}
-		log.Println("Sent ::", msg)
+		c.pool.read <- msg
 	}
 	c.socket.Close()
-	log.Println("Closed (writing)")
+	log.Println("RESPONDENTS :: Connection closed (writing)")
 }
 
 func NewWebSocketPubSubController() http.Handler {

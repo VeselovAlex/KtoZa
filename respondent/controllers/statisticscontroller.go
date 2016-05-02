@@ -111,9 +111,6 @@ func (ctrl *StatisticsController) doSync() {
 		cpy, upd := moveIfNeeded()
 		if upd {
 			MasterServer.SendAnswerCache(cpy)
-			// TODO HANDLE BAD SENDING
-
-			log.Println("STAT CONTROLLER :: Fetched snapshot from master")
 		}
 	}
 }

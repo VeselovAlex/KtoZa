@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -106,14 +108,24 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 		msg, ok := Respondents.Await().(eventMessage)
 		if !ok || msg.Event != EventNewAnswerCache {
 			log.Println("STATISTICS CTRL :: Bad message got from respondent")
+			if !ok {
+				log.Println("STATISTICS CTRL :: Bad message casting")
+			}
 			continue
 		}
+
+		// Внезапно данные в Base64
+		raw := []byte(msg.Data)
+		// Удаляем кавычки
+		raw = raw[1 : len(raw)-1]
+		reader := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(raw))
 		cache := &model.Statistics{}
-		err := json.Unmarshal(msg.Data, cache)
+		err := json.NewDecoder(reader).Decode(cache)
 		if err != nil {
 			log.Println("STATISTICS CTRL :: Bad message got from respondent:", err)
 			continue
 		}
 		apply(cache)
+		log.Println("STATISTICS CTRL :: Applied answer")
 	}
 }
