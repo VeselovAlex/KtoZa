@@ -13,6 +13,7 @@ type AnswerListener interface {
 	OnNewAnswerSet(model.AnswerSet)
 }
 
+// AnswerController осуществляет прием ответов
 type AnswerController struct {
 	listeners []AnswerListener
 
@@ -57,7 +58,8 @@ func (ctrl *AnswerController) notifyListeners(ans model.AnswerSet) {
 	}
 }
 
-func NewTestAnswerCtrl(listeners ...AnswerListener) *AnswerController {
+// NewAnswerController создает новый экземпляр контроллера ответов
+func NewAnswerController(listeners ...AnswerListener) *AnswerController {
 	ctrl := &AnswerController{
 		listeners: listeners,
 	}

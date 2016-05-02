@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -19,6 +20,7 @@ type storage struct {
 	statLock sync.Mutex
 }
 
+// LoadFileSystemStorage загружает файловое хранилище данных сервера
 func LoadFileSystemStorage(path string) {
 	Storage = &storage{dataPath: path}
 }
@@ -35,8 +37,16 @@ func (st *storage) ReadPoll() (*model.Poll, error) {
 		return nil, err
 	}
 
+	buffer, err := ioutil.ReadAll(src)
+	if err != nil {
+		return nil, err
+	}
+	if string(buffer[:4]) == "null" {
+		// Сохранен nil
+		return nil, nil
+	}
 	poll := &model.Poll{}
-	err = json.NewDecoder(src).Decode(poll)
+	err = json.Unmarshal(buffer, poll)
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +84,17 @@ func (st *storage) ReadStatistics() (*model.Statistics, error) {
 		return nil, err
 	}
 
+	buffer, err := ioutil.ReadAll(src)
+	if err != nil {
+		return nil, err
+	}
+	if string(buffer[:4]) == "null" {
+		// Сохранен nil
+		return nil, nil
+	}
+
 	stat := &model.Statistics{}
-	err = json.NewDecoder(src).Decode(stat)
+	err = json.Unmarshal(buffer, stat)
 	if err != nil {
 		return nil, err
 	}
@@ -101,21 +120,15 @@ func (st *storage) WriteStatistics(stat *model.Statistics) error {
 	return nil
 }
 
-type StorageUpdateListener struct{}
-
-func NewStorageUpdateListener() *StorageUpdateListener {
-	return &StorageUpdateListener{}
-}
-
-func (l *StorageUpdateListener) OnPollUpdate(poll *model.Poll) {
-	err := Storage.WritePoll(poll)
+func (st *storage) OnPollUpdate(poll *model.Poll) {
+	err := st.WritePoll(poll)
 	if err != nil {
 		log.Println("STORAGE :: Unable to persist poll:", err)
 	}
 }
 
-func (l *StorageUpdateListener) OnStatisticsUpdate(stat *model.Statistics) {
-	err := Storage.WriteStatistics(stat)
+func (st *storage) OnStatisticsUpdate(stat *model.Statistics) {
+	err := st.WriteStatistics(stat)
 	if err != nil {
 		log.Println("STORAGE :: Unable to persist statistics:", err)
 	}

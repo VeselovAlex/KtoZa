@@ -1,7 +1,7 @@
 package model
 
 import (
-	"sync"
+	"errors"
 	"time"
 )
 
@@ -15,9 +15,6 @@ type Statistics struct {
 
 	// Число принятых ответов
 	RespondentsCount int `json:"respondents"`
-
-	// Грубая блокировка
-	Lock sync.RWMutex `json:"-"`
 }
 
 // QuestionStat представляет данные статистики отдельного вопроса
@@ -31,6 +28,7 @@ type QuestionStat struct {
 
 // OptionStat представляет статистику по отдельному варианту ответа
 type OptionStat struct {
+	// Число ответов, содержащих данный вариант
 	Count int `json:"count"`
 }
 
@@ -51,18 +49,15 @@ func CreateStatisticsFor(poll *Poll) *Statistics {
 }
 
 // JoinWith объединяет данную статистику с текущей, суммируя ответы. Если
-// статистики были объединены, обновляет LastUpdate и возвращает true
+// статистики были объединены, обновляет LastUpdate и возвращает true.
+// Если текущая или заданная статистика == nil, или статистики объединить
+// невозможно, возвращает false
 func (stat *Statistics) JoinWith(other *Statistics) bool {
-	if other == nil {
-		return false
-	}
-
-	if !other.IsJoinableWith(stat) {
+	if stat == nil || other == nil || !other.IsJoinableWith(stat) {
 		return false
 	}
 
 	hasUpdates := false
-
 	for i, que := range other.Questions {
 		if que.AnswersCount != 0 {
 			stat.Questions[i].joinWith(que)
@@ -77,35 +72,25 @@ func (stat *Statistics) JoinWith(other *Statistics) bool {
 	return hasUpdates
 }
 
+// JoinStatistics объединяет текущие статистики и возвращает
+// новый экземпляр объединенной статистики. Функция не изменяет
+// передаваемые статистики. Если хотя бы один из аргументов == nil
+// или статистики невозможно объединить, возвращает nil
 func JoinStatistics(one, other *Statistics) *Statistics {
-	if one == nil && other == nil {
+	if one == nil || other == nil || !other.IsJoinableWith(one) {
 		return nil
 	}
-	if !other.IsJoinableWith(one) {
-		return nil
-	}
-	ret := &Statistics{
-		LastUpdate:       time.Now(),
-		Questions:        make([]QuestionStat, len(one.Questions)),
-		RespondentsCount: one.RespondentsCount + other.RespondentsCount,
-	}
-
-	for i, oneStat := range one.Questions {
-		options := make([]OptionStat, len(oneStat.Options))
-		otherStat := other.Questions[i]
-		for j, oneOpt := range oneStat.Options {
-			otherOpt := otherStat.Options[j]
-			options[j].Count = oneOpt.Count + otherOpt.Count
-		}
-		ret.Questions[i].Options = options
-		ret.Questions[i].AnswersCount = oneStat.AnswersCount + otherStat.AnswersCount
-	}
+	ret := &Statistics{}
+	one.CopyTo(ret)
+	ret.JoinWith(other)
 	return ret
 }
 
+// CopyTo копирует текущий экземпляр статистики в dst.
+// Если dst == nil, вызывает панику
 func (stat *Statistics) CopyTo(dst *Statistics) {
 	if dst == nil {
-		panic("Statistics copy dst is nil")
+		panic(errors.New("Statistics copy dst is nil"))
 	}
 	dst.LastUpdate = stat.LastUpdate
 	dst.RespondentsCount = stat.RespondentsCount
@@ -125,24 +110,22 @@ func (qs *QuestionStat) joinWith(other QuestionStat) {
 	qs.AnswersCount += other.AnswersCount
 }
 
+// IsJoinableWith проверяет возможность объединения текущей статистики с
+// заданной. Возвращает true, если текущая и заданная статистики не nil,
+// число опросов и число вариантов ответов на каждый вопрос совпадают,
+// иначе возвращает false
 func (stat *Statistics) IsJoinableWith(other *Statistics) bool {
-	if stat == nil {
-		return other == nil
-	}
-	if other == nil {
-		return stat == nil
-	}
-	if len(other.Questions) != len(stat.Questions) {
-		// Статистика не соответствует текущей
+	if stat == nil || other == nil {
 		return false
 	}
-
+	if len(other.Questions) != len(stat.Questions) {
+		return false
+	}
 	for i, q := range stat.Questions {
 		if len(q.Options) != len(other.Questions[i].Options) {
 			return false
 		}
 	}
-
 	return true
 }
 

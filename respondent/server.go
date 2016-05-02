@@ -33,32 +33,45 @@ var App struct {
 	SessionController    *controllers.SessionController
 }
 
+var appHost string
+var masterHost string
+
 func init() {
-	// Configure App
-	App.Name = "KtoZa poll provider, respondent server"
-	App.Version = "0.0.1"
-	App.Host = ":8080"
+	appHost = ":8080"
+	masterHost = "http://localhost:8888"
 
-	logListener := &LogListener{}
+	log.Println("SERVER INIT :: KtoZa poll provider. Respondent server")
+	log.Println("SERVER INIT :: Initialization started...")
 
-	controllers.ConnectToMaster("http://localhost:8888")
-	App.StatisticsController = controllers.NewTestStatCtrl(logListener)
-	App.SessionController = controllers.NewSessionController()
-	App.AnswerController = controllers.NewTestAnswerCtrl(logListener, App.StatisticsController)
-	App.PollController = controllers.NewTestPollCtrl(logListener, App.StatisticsController,
-		App.SessionController, App.AnswerController)
+	log.Println("SERVER INIT :: Connecting to master...")
+	controllers.ConnectToMaster(masterHost)
+	log.Println("SERVER INIT :: Connected to master")
+
+	log.Println("SERVER INIT :: Initializing request handlers")
+
+	log.Println("SERVER INIT :: #   /api/stats")
+	statCtrl := controllers.NewStatisticsController()
+	http.Handle("/api/stats", statCtrl)
+
+	log.Println("SERVER INIT :: #   /api/register")
+	sessionCtrl := controllers.NewSessionController()
+	http.Handle("/api/register", sessionCtrl)
+
+	log.Println("SERVER INIT :: #   /api/submit")
+	ansCtrl := controllers.NewAnswerController(statCtrl)
+	http.Handle("/api/submit", ansCtrl)
+
+	log.Println("SERVER INIT :: #   /api/poll")
+	pollCtrl := controllers.NewPollController(statCtrl, sessionCtrl, ansCtrl)
+	http.Handle("/api/poll", pollCtrl)
+
+	log.Println("SERVER INIT :: Initialization complete")
 }
 
 func main() {
-	//statics := http.FileServer(http.Dir("client"))
-	//http.Handle("/", http.StripPrefix("/", statics))
-	http.Handle("/api/poll", App.PollController)
-	http.Handle("/api/stats", App.StatisticsController)
-	http.Handle("/api/register", App.SessionController)
-	http.Handle("/api/submit", App.AnswerController)
-	log.Println("Starting server on", App.Host)
-	err := http.ListenAndServe(App.Host, nil)
+	log.Println("SERVER INIT :: Starting server on", appHost)
+	err := http.ListenAndServe(appHost, nil)
 	if err != nil {
-		log.Fatalln("Server stopped cause:", err)
+		log.Fatalln("SERVER INIT :: Server stopped cause:", err)
 	}
 }

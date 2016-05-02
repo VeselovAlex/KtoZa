@@ -77,6 +77,7 @@ func (ctrl *SessionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// GET
 func (ctrl *SessionController) handleRegister(w http.ResponseWriter, r *http.Request) {
 	key := ctrl.sessionPool.New()
 	ctrl.lock.RLock()
@@ -91,6 +92,7 @@ func (ctrl *SessionController) handleRegister(w http.ResponseWriter, r *http.Req
 	w.Write([]byte("registered"))
 }
 
+// POST
 func (ctrl *SessionController) handleCheckRegistration(w http.ResponseWriter, r *http.Request) {
 	regCookie, err := r.Cookie(regKeyCookieName)
 	jsonData := "false"

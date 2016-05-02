@@ -15,6 +15,7 @@ import (
 	common "github.com/VeselovAlex/KtoZa"
 )
 
+// MasterServer -- прокси M-Server'а
 var MasterServer *master
 
 type master struct {
@@ -30,6 +31,7 @@ type master struct {
 	stat *model.Statistics
 }
 
+// ConnectToMaster инициализирует прокси M-Сервера с данным URL
 func ConnectToMaster(urlString string) {
 	MasterServer = &master{
 		hostUrl: urlString,
@@ -48,6 +50,8 @@ func ConnectToMaster(urlString string) {
 	go MasterServer.write()
 }
 
+// GetPoll запрашивает данные опроса с M-Сервера. Если данные успешно получены, возвращает
+// ссылку на экземпляр опроса, в противном случае возвращает nil и ошибку
 func (m *master) GetPoll() (*model.Poll, error) {
 	resp, err := http.Get(m.hostUrl + "/api/poll")
 	if err != nil {
@@ -62,6 +66,8 @@ func (m *master) GetPoll() (*model.Poll, error) {
 	return poll, nil
 }
 
+// GetPoll запрашивает данные статистики с M-Сервера. Если данные успешно получены, возвращает
+// ссылку на экземпляр статистики, в противном случае возвращает nil и ошибку
 func (m *master) GetStatistics() (*model.Statistics, error) {
 	resp, err := http.Get(m.hostUrl + "/api/stats")
 	if err != nil {
@@ -76,14 +82,17 @@ func (m *master) GetStatistics() (*model.Statistics, error) {
 	return stat, nil
 }
 
+// AwaitPollUpdate ожидает изменение опроса и возвращает экземпляр изменненного опроса
 func (m *master) AwaitPollUpdate() *model.Poll {
 	return <-m.polls
 }
 
+// AwaitStatisticsUpdate ожидает изменение статистики и возвращает экземпляр изменненной статистики
 func (m *master) AwaitStatisticsUpdate() *model.Statistics {
 	return <-m.stats
 }
 
+// SendAnswerCache асинхронно отправляет заданный кэш статистики
 func (m *master) SendAnswerCache(cache *model.Statistics) {
 	if cache == nil {
 		return

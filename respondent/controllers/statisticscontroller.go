@@ -46,7 +46,7 @@ func (ctrl *StatisticsController) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func NewTestStatCtrl(listeners ...StatisticsListener) *StatisticsController {
+func NewStatisticsController(listeners ...StatisticsListener) *StatisticsController {
 	ctrl := &StatisticsController{
 		listeners: listeners,
 	}

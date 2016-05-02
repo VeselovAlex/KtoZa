@@ -1,9 +1,6 @@
 package model
 
-import (
-	"sync"
-	"time"
-)
+import "time"
 
 // Poll представляет структуру данных опроса системы KtoZa
 type Poll struct {
@@ -11,9 +8,6 @@ type Poll struct {
 	Caption   string       `json:"caption"`
 	Events    EventTimings `json:"events"`
 	Questions []Question   `json:"questions"`
-
-	// Грубая блокировка опроса
-	Lock sync.RWMutex `json:"-"`
 }
 
 // EventTimings представляет структуру, хранящую время до начала событий опроса:
@@ -36,56 +30,4 @@ type Question struct {
 	Text    string   `json:"text"`
 	Type    string   `json:"type"`
 	Options []string `json:"options"`
-}
-
-// IsValidAnswerSet возвращает true, если заданный набор ответов соответствует опросу
-func (poll *Poll) IsValidAnswerSet(set AnswerSet) bool {
-	setSlice := []Answer(set)
-	// Проверка длин
-	if len(setSlice) != len(poll.Questions) {
-		return false
-	}
-
-	for i, ans := range setSlice {
-		q := poll.Questions[i]
-		switch q.Type {
-		case TypeSingleOptionQuestion:
-			if !poll.isValidSingleOptionAnswer(ans, len(q.Options)) {
-				return false
-			}
-		case TypeMultiOptionQuestion:
-			if !poll.isValidMultiOptionAnswer(ans, len(q.Options)) {
-				return false
-			}
-		default:
-			return false
-		}
-	}
-	return true
-}
-
-func (poll *Poll) isValidSingleOptionAnswer(ans Answer, numOptions int) bool {
-	ansSlice := []int(ans)
-	if len(ansSlice) > 1 {
-		return false
-	}
-	for _, option := range ansSlice {
-		if option < 0 || option > numOptions {
-			return false
-		}
-	}
-	return true
-}
-
-func (poll *Poll) isValidMultiOptionAnswer(ans Answer, numOptions int) bool {
-	ansSlice := []int(ans)
-	if len(ansSlice) > numOptions {
-		return false
-	}
-	for _, option := range ansSlice {
-		if option < 0 || option >= numOptions {
-			return false
-		}
-	}
-	return true
 }

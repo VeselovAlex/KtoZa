@@ -24,7 +24,9 @@ type StatisticsController struct {
 	stat *model.Statistics
 }
 
+// NewStatisticsController создает новый экземпляр контроллера статистики
 func NewStatisticsController(listeners ...StatisticsListener) *StatisticsController {
+	listeners = append(listeners, Storage)
 	ctrl := &StatisticsController{
 		listeners: listeners,
 	}
@@ -76,16 +78,19 @@ func (ctrl *StatisticsController) notifyListeners(stat *model.Statistics) {
 	}
 }
 
+// OnPollUpdate -- действие контроллера статистики при изменении опроса
 func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.lock.Lock()
 	defer ctrl.lock.Unlock()
-	if ctrl.stat == nil {
+	if poll == nil {
+		ctrl.stat = nil
+	} else if ctrl.stat == nil {
 		// Первоначальная загрузка
 		var err error
 		stat, err := Storage.ReadStatistics()
 		newStat := model.CreateStatisticsFor(poll)
 		if err != nil || stat == nil || !newStat.IsJoinableWith(stat) {
-			//Нет статистики
+			//Нет статистики или статистика не соответствует опросу
 			ctrl.stat = newStat
 		} else {
 			ctrl.stat = stat
@@ -100,6 +105,10 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 	apply := func(cache *model.Statistics) {
 		ctrl.lock.Lock()
 		defer ctrl.lock.Unlock()
+		if ctrl.stat == nil {
+			// Пропускаем
+			return
+		}
 		if ok := ctrl.stat.JoinWith(cache); ok {
 			ctrl.notifyListeners(ctrl.stat)
 		}

@@ -24,24 +24,26 @@ type PollController struct {
 	poll *model.Poll
 }
 
+// NewPollController создает экземпляр контроллера опросов.
+// Параметр listeners -- произвольное число слушателей обновлений опроса
 func NewPollController(listeners ...PollListener) *PollController {
+	// Читаем опрос из хранилища
 	poll, err := Storage.ReadPoll()
 	if err != nil {
-		poll := &model.Poll{}
-		err = Storage.WritePoll(poll)
-		if err != nil {
-			log.Fatalln("POLL CONTROLLER :: Unable to init poll data:", err)
-		}
+		log.Println("POLL CONTROLLER :: No or bad poll data:", err)
+		log.Println("POLL CONTROLLER :: Using empty poll")
 	}
-
+	listeners = append(listeners, Storage)
 	ctrl := &PollController{
 		poll:      poll,
 		listeners: listeners,
 	}
+	// Оповещаем слушателей об изменении опроса
 	ctrl.notifyListeners(ctrl.poll)
 	return ctrl
 }
 
+// ServeHTTP реализует интерфейс http.Handler и осуществляет обработку запросов
 func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:

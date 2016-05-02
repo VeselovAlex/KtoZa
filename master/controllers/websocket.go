@@ -13,6 +13,27 @@ import (
 
 var Respondents = newWebSocketPubSub()
 
+type WebSocketController struct {
+	http.Handler
+}
+
+func NewWebSocketController() *WebSocketController {
+	return &WebSocketController{
+		websocket.Handler(handleWebSocketConnection),
+	}
+}
+
+func handleWebSocketConnection(conn *websocket.Conn) {
+	Respondents.Subscribe(conn)
+}
+
+func (ctrl *WebSocketController) OnPollUpdate(poll *model.Poll) {
+	Respondents.NotifyAll(common.Wrap.UpdatedPoll(poll))
+}
+func (ctrl *WebSocketController) OnStatisticsUpdate(stat *model.Statistics) {
+	Respondents.NotifyAll(common.Wrap.UpdatedStatistics(stat))
+}
+
 type wsPubSubPool struct {
 	subscribe chan *connection
 	delete    chan *connection
@@ -125,25 +146,4 @@ func (c *connection) write() {
 	}
 	c.socket.Close()
 	log.Println("RESPONDENTS :: Connection closed (writing)")
-}
-
-func NewWebSocketPubSubController() http.Handler {
-	return websocket.Handler(handleWebSocketConnection)
-}
-
-func handleWebSocketConnection(conn *websocket.Conn) {
-	Respondents.Subscribe(conn)
-}
-
-type RespondentsUpdateListener struct{}
-
-func NewRespondentsUpdateListener() *RespondentsUpdateListener {
-	return &RespondentsUpdateListener{}
-}
-
-func (l *RespondentsUpdateListener) OnPollUpdate(poll *model.Poll) {
-	Respondents.NotifyAll(common.Wrap.UpdatedPoll(poll))
-}
-func (l *RespondentsUpdateListener) OnStatisticsUpdate(stat *model.Statistics) {
-	Respondents.NotifyAll(common.Wrap.UpdatedStatistics(stat))
 }

@@ -56,6 +56,7 @@ func TestParsingJSON(t *testing.T) {
 	checkEquals(t, poll.Title, "Простой опрос")
 }
 
+/*
 func TestAnswerVerification(t *testing.T) {
 	good := []AnswerSet{
 		AnswerSet([]Answer{Answer([]int{}), Answer([]int{})}),        // Пустой ответ
@@ -87,3 +88,4 @@ func TestAnswerVerification(t *testing.T) {
 		}
 	}
 }
+*/

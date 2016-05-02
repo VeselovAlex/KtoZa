@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -23,6 +22,29 @@ type PollController struct {
 
 	lock sync.RWMutex
 	poll *model.Poll
+}
+
+// NewPollController создает экземпляр контроллера опроса
+func NewPollController(listeners ...PollListener) *PollController {
+	poll, err := MasterServer.GetPoll()
+	if err != nil {
+		log.Fatalln("POLL CONTROLLER :: Unable to get data from server:", err)
+	}
+	log.Println("POLL CONTROLLER :: Got poll from master")
+	ctrl := &PollController{
+		listeners: listeners,
+		poll:      poll,
+	}
+
+	// Для отладки, удалить после
+	now := time.Now()
+	ctrl.poll.Events.RegistrationAt = now.Add(5 * time.Second)
+	ctrl.poll.Events.StartAt = now.Add(10 * time.Second)
+	ctrl.poll.Events.EndAt = now.Add(30 * time.Second)
+	//
+	ctrl.notifyListeners(ctrl.poll)
+	go ctrl.listenToMaster()
+	return ctrl
 }
 
 func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -61,41 +83,7 @@ func (ctrl *PollController) listenToMaster() {
 	}
 	for {
 		poll := MasterServer.AwaitPollUpdate()
+		log.Println("POLL CONTROLLER :: Got poll update")
 		updWith(poll)
 	}
-}
-
-func (ctrl *PollController) doReadPollFrom(r io.Reader) bool {
-	ctrl.lock.Lock()
-	defer ctrl.lock.Unlock()
-	poll := &model.Poll{}
-	err := json.NewDecoder(r).Decode(poll)
-	if err != nil {
-		log.Println("POLL CONTROLLER :: Unable to read poll:", err)
-		return false
-	}
-	ctrl.poll = poll
-	return true
-}
-
-func NewTestPollCtrl(listeners ...PollListener) *PollController {
-	poll, err := MasterServer.GetPoll()
-	if err != nil {
-		log.Fatalln("POLL CONTROLLER :: Unable to get data from server:", err)
-	}
-
-	ctrl := &PollController{
-		listeners: listeners,
-		poll:      poll,
-	}
-
-	// Для отладки, удалить после
-	now := time.Now()
-	ctrl.poll.Events.RegistrationAt = now.Add(5 * time.Second)
-	ctrl.poll.Events.StartAt = now.Add(10 * time.Second)
-	ctrl.poll.Events.EndAt = now.Add(30 * time.Second)
-	//
-	ctrl.notifyListeners(ctrl.poll)
-	go ctrl.listenToMaster()
-	return ctrl
 }

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/VeselovAlex/KtoZa/model"
 
@@ -24,51 +24,48 @@ func (l *LogListener) OnNewAnswerSet(ans model.AnswerSet) {
 	log.Println("LOG LISTENER :: New answer set", ans)
 }
 
-// App реализует хранение конфигурации приложения и внедрение зависимостей
-var App struct {
-	Host string
-
-	PollController       *controllers.PollController
-	StatisticsController *controllers.StatisticsController
-	WebSocketController  http.Handler
-}
+var appHost string
 
 func init() {
-	App.Host = ":8888"
+	appHost = ":8888"
 
-	logListener := new(LogListener)
+	log.Println("SERVER INIT :: KtoZa poll provider. Master server")
+	log.Println("SERVER INIT :: Initialization started...")
 
-	controllers.LoadFileSystemStorage("data")
-	storageListener := controllers.NewStorageUpdateListener()
-	respondentsListener := controllers.NewRespondentsUpdateListener()
+	log.Println("SERVER INIT :: Opening server data folder...")
+	data := "data"
+	// Создаем папку выходных данных
+	err := os.Mkdir(data, 0755)
+	if err != nil && !os.IsExist(err) {
+		// Папка не создана и не существует
+		log.Fatalln("SERVER INIT :: Initialization failed:", err)
+	}
 
-	App.StatisticsController = controllers.NewStatisticsController(
-		logListener, storageListener, respondentsListener)
-	App.PollController = controllers.NewPollController(
-		logListener, App.StatisticsController, storageListener, respondentsListener)
-	App.WebSocketController = controllers.NewWebSocketPubSubController()
+	log.Println("SERVER INIT :: Loading data storage...")
+	controllers.LoadFileSystemStorage(data)
+
+	log.Println("SERVER INIT :: Initializing request handlers")
+
+	log.Println("SERVER INIT :: #   /api/ws")
+	wsCtrl := controllers.NewWebSocketController()
+	http.Handle("/api/ws", wsCtrl)
+
+	log.Println("SERVER INIT :: #   /api/stats")
+	statCtrl := controllers.NewStatisticsController(wsCtrl)
+	http.Handle("/api/stats", statCtrl)
+
+	log.Println("SERVER INIT :: #   /api/poll")
+	pollCtrl := controllers.NewPollController(statCtrl, wsCtrl)
+	http.Handle("/api/poll", pollCtrl)
+
+	log.Println("SERVER INIT :: Initialization complete")
 }
 
 func main() {
-	fmt.Println("KtoZa poll provider. Master server")
-	fmt.Println("Initialization...")
-
-	http.Handle("/api/poll", App.PollController)
-	fmt.Println("#   /api/poll")
-
-	http.Handle("/api/stats", App.StatisticsController)
-	fmt.Println("#   /api/stats")
-
-	http.Handle("/api/ws", App.WebSocketController)
-	fmt.Println("#   /api/ws")
-
-	fmt.Println("Initialization complete")
-	fmt.Println("Starting server on", App.Host)
-
+	log.Println("SERVER INIT :: Starting server on", appHost)
 	// Starting server on specified addr
-	err := http.ListenAndServe(App.Host, nil)
+	err := http.ListenAndServe(appHost, nil)
 	if err != nil {
-		fmt.Printf("Unable to start master server on %s: %v\n", App.Host, err)
-		log.Fatalf("Unable to start master server on %s: %v\n", App.Host, err)
+		log.Fatalf("SERVER INIT :: Unable to start master server on %s: %v\n", appHost, err)
 	}
 }
