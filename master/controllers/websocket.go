@@ -102,13 +102,13 @@ type connection struct {
 
 func (c *connection) read() {
 	for {
-		msg := eventMessage{}
-		err := websocket.JSON.Receive(c.socket, &msg)
+		raw := eventRawMessage{}
+		err := websocket.JSON.Receive(c.socket, &raw)
 		if err != nil {
 			log.Println("RESPONDENTS :: Bad connection response,", err, "[closing]")
 			break
 		}
-		c.pool.read <- msg
+		c.pool.read <- raw
 	}
 	c.socket.Close()
 	log.Println("RESPONDENTS :: Connection closed (reading)")

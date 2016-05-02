@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -98,7 +96,6 @@ func (m *master) write() {
 	badsInRow := 0
 	for cache := range m.caches {
 		msg := About.NewAnswerCache(cache).(eventMessage)
-		log.Printf("DEBUG :: Sent data %s\n", msg.Data)
 		err := websocket.JSON.Send(m.conn, msg)
 		if err != nil {
 			badsInRow++
@@ -117,7 +114,7 @@ func (m *master) read() {
 	const maxBadsInRow = 3
 	badsInRow := 0
 	for {
-		msg := &eventMessage{}
+		msg := &eventRawMessage{}
 		err := websocket.JSON.Receive(m.conn, msg)
 		if err != nil {
 			badsInRow++
@@ -132,12 +129,7 @@ func (m *master) read() {
 		switch msg.Event {
 		case EventUpdatedPoll:
 			poll := &model.Poll{}
-			// Внезапно данные в Base64
-			raw := []byte(msg.Data)
-			// Удаляем кавычки
-			raw = raw[1 : len(raw)-1]
-			reader := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(raw))
-			err = json.NewDecoder(reader).Decode(poll)
+			err = json.Unmarshal(msg.Data, poll)
 			if err != nil {
 				log.Println("MASTER SERVER :: Bad poll message, skip")
 			} else {
@@ -146,12 +138,7 @@ func (m *master) read() {
 			}
 		case EventUpdatedStatistics:
 			stat := &model.Statistics{}
-			// Внезапно данные в Base64
-			raw := []byte(msg.Data)
-			// Удаляем кавычки
-			raw = raw[1 : len(raw)-1]
-			reader := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(raw))
-			err = json.NewDecoder(reader).Decode(stat)
+			err = json.Unmarshal(msg.Data, stat)
 			if err != nil {
 				log.Println("MASTER SERVER :: Bad statistics message, skip")
 			} else {

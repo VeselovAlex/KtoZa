@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -105,7 +103,7 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 		}
 	}
 	for {
-		msg, ok := Respondents.Await().(eventMessage)
+		msg, ok := Respondents.Await().(eventRawMessage)
 		if !ok || msg.Event != EventNewAnswerCache {
 			log.Println("STATISTICS CTRL :: Bad message got from respondent")
 			if !ok {
@@ -113,14 +111,8 @@ func (ctrl *StatisticsController) listenForAnswerCaches() {
 			}
 			continue
 		}
-
-		// Внезапно данные в Base64
-		raw := []byte(msg.Data)
-		// Удаляем кавычки
-		raw = raw[1 : len(raw)-1]
-		reader := base64.NewDecoder(base64.StdEncoding, bytes.NewReader(raw))
 		cache := &model.Statistics{}
-		err := json.NewDecoder(reader).Decode(cache)
+		err := json.Unmarshal(msg.Data, cache)
 		if err != nil {
 			log.Println("STATISTICS CTRL :: Bad message got from respondent:", err)
 			continue

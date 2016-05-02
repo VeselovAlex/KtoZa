@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -12,20 +11,13 @@ var About *eventMessageWrapper
 type eventMessageWrapper struct{}
 
 type eventMessage struct {
-	Event string          `json:"event"`
-	Data  json.RawMessage `json:"data"`
+	Event string      `json:"event"`
+	Data  interface{} `json:"data"`
 }
 
-func (*eventMessageWrapper) updated(evtMsg string, data interface{}) interface{} {
-	raw, err := json.Marshal(data)
-	if err != nil {
-		log.Println("Message wrapper :: bad JSON marshalling,", err)
-		return nil
-	}
-	return eventMessage{
-		Event: evtMsg,
-		Data:  json.RawMessage(raw),
-	}
+type eventRawMessage struct {
+	Event string          `json:"event"`
+	Data  json.RawMessage `json:"data"`
 }
 
 const (
@@ -35,13 +27,13 @@ const (
 )
 
 func (w *eventMessageWrapper) UpdatedPoll(poll *model.Poll) interface{} {
-	return w.updated(EventUpdatedPoll, poll)
+	return eventMessage{EventUpdatedPoll, poll}
 }
 
 func (w *eventMessageWrapper) UpdatedStatistics(stat *model.Statistics) interface{} {
-	return w.updated(EventUpdatedStatistics, stat)
+	return eventMessage{EventUpdatedStatistics, stat}
 }
 
 func (w *eventMessageWrapper) NewAnswerCache(cache *model.Statistics) interface{} {
-	return w.updated(EventNewAnswerCache, cache)
+	return eventMessage{EventNewAnswerCache, cache}
 }
