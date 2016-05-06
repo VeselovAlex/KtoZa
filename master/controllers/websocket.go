@@ -93,7 +93,6 @@ func (pubSub *wsPubSubPool) Await() interface{} {
 }
 
 func (pubSub *wsPubSubPool) run() {
-	log.Println("wsPubSubPool is now running")
 	for {
 		select {
 		case c := <-pubSub.delete:

@@ -1,44 +1,51 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/VeselovAlex/KtoZa/model"
 	"github.com/VeselovAlex/KtoZa/respondent/controllers"
 )
 
-type LogListener struct{}
-
-func (l *LogListener) OnPollUpdate(*model.Poll) {
-	log.Println("LOG LISTENER :: Poll update")
-}
-
-func (l *LogListener) OnStatisticsUpdate(*model.Statistics) {
-	log.Println("LOG LISTENER :: Statistics update")
-}
-
-func (l *LogListener) OnNewAnswerSet(ans model.AnswerSet) {
-	log.Println("LOG LISTENER :: New answer set", ans)
-}
-
-var App struct {
-	Name    string
-	Version string
-	Host    string
-
-	PollController       *controllers.PollController
-	StatisticsController *controllers.StatisticsController
-	AnswerController     *controllers.AnswerController
-	SessionController    *controllers.SessionController
-}
-
 var appHost string
 var masterHost string
+var needUsage bool
+var logFile string
 
 func init() {
-	appHost = ":8080"
-	masterHost = "http://localhost:8888"
+	flag.StringVar(&appHost, "a", ":8080", "This server host")
+	flag.StringVar(&masterHost, "m", "", "Master server address, required")
+	flag.BoolVar(&needUsage, "h", false, "Show this help")
+	flag.StringVar(&logFile, "f", "", "Write log to file")
+
+	flag.Parse()
+
+	if needUsage || masterHost == "" {
+		showUsage()
+		os.Exit(1)
+	}
+
+}
+
+func main() {
+
+	if logFile != "" {
+		l, err := os.OpenFile(logFile, os.O_APPEND, 0755)
+		if err != nil {
+			if os.IsNotExist(err) {
+				l, err = os.Create(logFile)
+			}
+			if err != nil {
+				fmt.Println("Unable to open log file:", err)
+				os.Exit(1)
+			}
+		}
+		defer l.Close()
+		log.SetOutput(l)
+	}
 
 	log.Println("SERVER INIT :: KtoZa poll provider. Respondent server")
 	log.Println("SERVER INIT :: Initialization started...")
@@ -47,6 +54,16 @@ func init() {
 	controllers.ConnectToMaster(masterHost)
 	log.Println("SERVER INIT :: Connected to master")
 
+	initHandlers()
+
+	log.Println("SERVER INIT :: Starting server on", appHost)
+	err := http.ListenAndServe(appHost, nil)
+	if err != nil {
+		log.Fatalln("SERVER INIT :: Server stopped cause:", err)
+	}
+}
+
+func initHandlers() {
 	log.Println("SERVER INIT :: Initializing request handlers")
 
 	log.Println("SERVER INIT :: #   /api/stats")
@@ -65,13 +82,13 @@ func init() {
 	pollCtrl := controllers.NewPollController(statCtrl, sessionCtrl, ansCtrl)
 	http.Handle("/api/poll", pollCtrl)
 
+	log.Println("SERVER INIT :: #   /")
+	fs := http.FileServer(http.Dir("client"))
+	http.Handle("/", http.StripPrefix("/", fs))
+
 	log.Println("SERVER INIT :: Initialization complete")
 }
 
-func main() {
-	log.Println("SERVER INIT :: Starting server on", appHost)
-	err := http.ListenAndServe(appHost, nil)
-	if err != nil {
-		log.Fatalln("SERVER INIT :: Server stopped cause:", err)
-	}
+func showUsage() {
+	flag.Usage()
 }

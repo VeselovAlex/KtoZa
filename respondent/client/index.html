@@ -1,15 +1,229 @@
 <!DOCTYPE html>
 
-<meta charset="utf-8">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.2/react.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.2/react-dom.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+<script src="app.js"></script>
 
-<!-- application source -->
-<script type="text/babel" src="respondent.js"></script>
+<style>
+  body {
+    min-height: 100vh;
+  }
+  
+  body>header {
+    width: 15%;
+    background-color: #eef;
+    height: 100%;
+    position: fixed;
+  }
+  
+  body>header>nav {
+    width: 90%;
+    margin: 0 auto;
+  }
+  
+  .logo {
+    width: 100%;
+    font-size: 200%;
+    text-align: center;
+    padding: 0.2em;
+    margin-bottom: 0.5em;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .view {
+    width: 85%;
+    margin: 0 0 0 15%;
+  }
+  
+  .view>.content {
+    width: 80%;
+    height: 100%;
+    padding: 1em;
+  }
+  
+  .view>aside {
+    position: fixed;
+    width: 17%;
+    height: 100%;
+    margin: 0 0 0 68%;
+    padding-top: 5%;
+  }
+  
+  .view>aside>* {
+    width: 90%;
+    margin: 0 auto 0.5em auto;
+  }
+  
+  .option>.glyphicon {
+    color: transparent;
+    margin-right: 1em;
+  }
+  
+  .option.selected>.glyphicon {
+    color: black;
+    margin-right: 1em;
+  }
+  
+  .option-stat:after {
+    content: " респондентов"
+  }
+  
+  #poll-progress .panel-content,
+  #poll-state {
+    padding: 0.5em 1em;
+  }
+  
+  #poll-progress,
+  #poll-state,
+  #poll-timings * {
+    border-color: black;
+  }
+  
+  #poll-progress button {
+    width: 100%;
+  }
+  
+  .question {
+    border-color: black;
+  }
+  
+  .question .panel-heading {
+    cursor: pointer;
+  }
+</style>
 
-<h1>Привет</h1>
-<section id="poll"></section>
-<div id="view"></div>
+<body ng-app="ktoza-respondent" ng-controller="Poll as pollCtrl">
+  <header>
+    <div class="logo">Опрос</div>
+    <nav>
+      <ul class="nav nav-pills nav-stacked">
+        <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('intro')}">
+          <a href ng-click="pollCtrl.setView('intro')">Начало</a>
+        </li>
+        <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('questions')}" ng-show="pollCtrl.canShowQuestions()">
+          <a href ng-click="pollCtrl.setView('questions')">Вопросы</a>
+        </li>
+        <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('stats')}" ng-show="pollCtrl.canShowStatistics()">
+          <a href ng-click="pollCtrl.setView('stats')">Статистика</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+  <div class="view">
+    <aside>
+      <div id="poll-state" class="panel" ng-hide="pollCtrl.pollState === 'before'">
+        <h4 ng-show="pollCtrl.pollState === 'registration'">Идет регистрация</h4>
+        <h4 ng-show="pollCtrl.pollState === 'started'">Идет опрос</h4>
+        <h4 ng-show="pollCtrl.pollState === 'ended'">Опрос завершен</h4>
+      </div>
+      <div id="poll-timings" class="list-group">
+        <span class="list-group-item">
+        <h4 class="list-group-item-heading">Начало регистрации</h4>
+        <p class="list-group-item-text" ng-bind="pollCtrl.events.registrationAt| date: 'dd.MM.yyyy в HH.mm.ss'"></p>
+      </span>
+        <span class="list-group-item">
+        <h4 class="list-group-item-heading">Начало опроса</h4>
+        <p class="list-group-item-text" ng-bind="pollCtrl.events.startAt| date: 'dd.MM.yyyy в HH.mm.ss'"></p>
+      </span>
+        <span class="list-group-item">
+        <h4 class="list-group-item-heading">Окончание опроса</h4>
+        <p class="list-group-item-text" ng-bind="pollCtrl.events.endAt| date: 'dd.MM.yyyy в HH.mm.ss'"></p>
+      </span>
+      </div>
+      <div id="poll-progress" ng-show="pollCtrl.isCurrentView('questions')" class="panel">
+        <div class="panel-heading">
+          <h4>Прогресс опроса</h4>
+        </div>
+        <div class="panel-content">
+          <div class="progress">
+            <div class="progress-bar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="1" style="min-width: 4em" ng-style="{'width': 100*pollCtrl.numAnswered()/pollCtrl.questions.length + '%'}">
+              {{pollCtrl.numAnswered()}} из {{pollCtrl.questions.length}}
+            </div>
+          </div>
+          <button type="button" class="btn btn-success" style="margin: 0 auto;" ng-click="pollCtrl.submit()">Отправить ответ</button>
+        </div>
+    </aside>
+    <div class="content">
+      <section ng-hide="pollCtrl.loaded">
+        <div class="poll-msg">В данный момент опрос не доступен. Повторите запрос позднее</div>
+      </section>
+      <section ng-show="pollCtrl.loaded">
+        <header class="page-header">
+          <h1>
+            {{pollCtrl.header.title}}<br>
+            <small ng-bind="pollCtrl.header.caption">Описание опроса</small>
+          </h1>
+        </header>
+        <div class="intro" ng-show="pollCtrl.isCurrentView('intro')">
+          <div ng-show="pollCtrl.pollState === 'before'">
+            <h2>Регистрация начнется через</h2>
+            <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>
+          </div>
+          <div ng-show="pollCtrl.pollState === 'registration'">
+            <h2>Идет регистрация</h2>
+            <h2>Опрос начнется через</h2>
+            <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>
+            <button class="btn btn-primary btn-lg" ng-disabled="pollCtrl.isRegistered()">
+              <span ng-show="pollCtrl.isRegistered()">Вы зарегистрированы</span>
+              <span ng-hide="pollCtrl.isRegistered()">Зарегистрироваться</span>
+            </button>
+          </div>
+          <div ng-show="pollCtrl.pollState === 'started'">
+            <h2>Идет опрос...
+            <small>Вы <span ng-hide="pollCtrl.isRegistered()">не</span> зарегистрированы</small>
+            </h2>
+            <h2>До завершения осталось</h2>
+            <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>
+          </div>
+          <div ng-show="pollCtrl.pollState === 'ended'">
+            <h2>Опрос завершен</h2>
+          </div>
+        </div>
+        <div class="questions" ng-show="pollCtrl.isCurrentView('questions')">
+          <h2>Вопросы</h2>
+          <div class="question panel" ng-repeat="(qNum, question) in pollCtrl.questions" ng-class="{'panel-success':pollCtrl.isAnswered(qNum)}">
+            <div class="panel-heading" ng-click="pollCtrl.collapse(qNum)">
+              <h3 class="panel-title" ng-bind="question.text"></h3>
+            </div>
+            <div class="panel-body" ng-hide="pollCtrl.isCollapsed(qNum)">
+              Выберите один<span ng-show="question.type === 'single-option'"> вариант</span>
+              <span ng-show="question.type === 'multi-option'">или несколько вариантов</span> ответа из списка
+            </div>
+            <ul class="list-group" ng-hide="pollCtrl.isCollapsed(qNum)">
+              <li class="option list-group-item" ng-repeat="(num, option) in question.options" ng-click="pollCtrl.apply(qNum, num)" ng-class="{'selected' : pollCtrl.isApplied(qNum, num)}">
+                <span class="glyphicon glyphicon-ok"></span>
+                <span ng-bind="option"></span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="statistics" ng-show="pollCtrl.isCurrentView('stats')">
+          <h2>
+            Статистика<br>
+            <small>
+              Принято <span ng-bind="pollCtrl.statistics.respondents"></span>
+              ответов (по состоянию на <span ng-bind="pollCtrl.statistics.date| date: 'dd.MM.yyyy HH:mm:ss'"></span>)
+            </small>
+          </h2>
+          <div class="panel" ng-repeat="(qNum, qStat) in pollCtrl.statistics.questions">
+            <div class="panel-heading">
+              <h3 class="panel-title" ng-bind="question.text"></h3>
+            </div>
+            <div class="panel-body">
+              Получено <span ng-bind="qStat.answerCount"></span> ответов
+            </div>
+            <ul class="list-group" ng-init="question = pollCtrl.questions[qNum]">
+              <li class="list-group-item" ng-repeat="(optNum, optStat) in qStat.options">
+                <span ng-bind="question.options[optNum]"></span>
+                <span class="option-stat badge">{{optStat.count}} из {{qStat.answerCount}}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+    </div>
+</body>

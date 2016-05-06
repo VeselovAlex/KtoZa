@@ -11,6 +11,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+var SessionPool = &sessionPool{
+	data: make(map[string]bool, 100),
+}
+
 type sessionPool struct {
 	lock sync.RWMutex
 	data map[string]bool
@@ -44,18 +48,12 @@ func (s *sessionPool) Delete(key string) {
 const regKeyCookieName = "reg-key"
 
 type SessionController struct {
-	sessionPool *sessionPool
-
 	lock    sync.RWMutex
 	expires time.Time
 }
 
 func NewSessionController() *SessionController {
-	return &SessionController{
-		sessionPool: &sessionPool{
-			data: make(map[string]bool, 128),
-		},
-	}
+	return &SessionController{}
 }
 
 func (ctrl *SessionController) OnPollUpdate(poll *model.Poll) {
@@ -77,22 +75,24 @@ func (ctrl *SessionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// GET
+// POST
 func (ctrl *SessionController) handleRegister(w http.ResponseWriter, r *http.Request) {
-	key := ctrl.sessionPool.New()
 	ctrl.lock.RLock()
 	expires := ctrl.expires
 	ctrl.lock.RUnlock()
-	cookie := &http.Cookie{
-		Name:    regKeyCookieName,
-		Value:   key,
-		Expires: expires,
+	if time.Now().Before(expires) {
+		key := SessionPool.New()
+		cookie := &http.Cookie{
+			Name:    regKeyCookieName,
+			Value:   key,
+			Expires: expires,
+		}
+		http.SetCookie(w, cookie)
 	}
-	http.SetCookie(w, cookie)
 	w.Write([]byte("registered"))
 }
 
-// POST
+// GET
 func (ctrl *SessionController) handleCheckRegistration(w http.ResponseWriter, r *http.Request) {
 	regCookie, err := r.Cookie(regKeyCookieName)
 	jsonData := "false"
@@ -105,7 +105,7 @@ func (ctrl *SessionController) handleCheckRegistration(w http.ResponseWriter, r 
 		return
 	}
 
-	if ctrl.sessionPool.Contains(regCookie.Value) {
+	if SessionPool.Contains(regCookie.Value) {
 		jsonData = "true"
 	}
 	w.Write([]byte(jsonData))

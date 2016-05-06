@@ -1,0 +1,145 @@
+app = angular.module('ktoza-master', [])
+
+class Poll
+    constructor: ($http) ->
+        $http
+            .get "api/poll",
+                responseType:"json"
+            .then (resp) =>
+                    @poll = resp.data
+                    # Разбор дат
+                    @poll.events.registration = new Date(@poll.events.registration)
+                    @poll.events.registration.setMilliseconds(0)
+                    @poll.events.start = new Date(@poll.events.start)
+                    @poll.events.start.setMilliseconds(0)
+                    @poll.events.end = new Date(@poll.events.end)
+                    @poll.events.end.setMilliseconds(0)
+                    # Оборачиваем вопросы
+                    @angQuestions = @poll.questions.map (q) ->
+                        angQ = {
+                            text: q.text
+                            type: q.type
+                        }
+                        angQ.options = q.options.map (o) -> 
+                            option: o
+                        return angQ
+        $http
+            .get "api/stats",
+                responseType: "json"
+            .then (resp) =>
+                    @statistics = resp.data
+                    @statistics.date = new Date(@statistics.date)
+                    @statistics.date.setMilliseconds(0)
+            
+    createPoll: =>
+        now = new Date()
+        now.setMilliseconds(0)
+        now.setSeconds(0)
+        @poll = {
+            events: {
+                registration: now
+                start: now
+                end: now
+            }
+        }   
+        @angQuestions = []
+    
+    # Валидация
+    hasPoll: => 
+        @poll?
+    hasStatistics: => 
+        @statistics?
+    hasTitle: =>
+        @hasPoll() && @poll.title? && @poll.title isnt ""
+    hasQuestions: =>
+        @angQuestions? && @angQuestions.length > 0
+    hasText: (q) ->
+        q.text? && q.text isnt "" 
+    hasType: (q) ->
+        q.type? && q.type isnt "" 
+    hasOptions: (q) ->
+        q.options? && q.options.length > 1
+    isValidOption: (o) ->
+        o.option? && o.option isnt ""
+    isValidQuestion: (q) ->
+        ret = @hasText(q) && @hasType(q) && @hasOptions(q)
+        # Проверка всех вариантов
+        return ret && q.options.reduce (acc, opt) =>
+                acc && @isValidOption(opt)
+            , true
+    isValidRegTime: =>
+        # Больше 5 секунд до начала регистрации
+        @hasPoll() && (@poll.events.registration - new Date()) > 5000 # ms
+    isValidStartTime: =>
+        # Хотя бы 1 минута на регистрацию
+        @hasPoll() && (@poll.events.start - @poll.events.registration) >= 60000 # ms
+    isValidEndTime: =>
+        # Хотя бы 1 минута на опрос
+        @hasPoll() && (@poll.events.end - @poll.events.start) >= 60000 # ms   
+    isValidPoll: => 
+        valid = @hasTitle()
+        valid = valid && @isValidRegTime() && @isValidStartTime() && @isValidEndTime()
+        valid = valid && @hasQuestions()
+        return valid && @angQuestions.reduce (acc, q) =>
+                acc && @isValidQuestion(q)
+            , true
+    
+    # Управление авторизацией
+    isAuthorized: => 
+        if @auth?
+            return @auth
+        console.log 'Checking auth'
+        @auth = false
+    authorize: =>  
+        @auth = true
+    
+    #Управление вопросами
+    newQuestion: =>
+        @angQuestions.push {
+                options: []
+            }
+    deleteQuestion: (qNum) =>
+        newQuestions = []
+        @angQuestions.forEach (q, n) ->
+            if n isnt qNum
+                newQuestions.push q
+        @angQuestions = newQuestions 
+    newOption: (q) =>
+        @angQuestions[q].options.push {option: ""}
+    deleteOption: (qNum, optNum) =>
+        question = @angQuestions[qNum]
+        newOptions = []
+        question.options.forEach (o, n) ->
+            if n isnt optNum
+                newOptions.push o
+        question.options = newOptions
+    
+    # Управление текущим окном
+    currentView: "intro"
+    setView: (view) =>
+        @currentView = view
+    isCurrentView: (view) =>
+        @currentView is view
+          
+    # Сворачивание статистики
+    collapsed: []
+    collapse: (q) =>
+        @collapsed[q] = !@collapsed[q]
+    isCollapsed: (q) =>  @collapsed[q]
+    
+    submit: =>
+        poll = {
+            title: @poll.title
+            caption: @poll.caption
+            events: @poll.events
+        }
+        poll.questions = @angQuestions.map (q) ->
+            ret = {
+                type:  q.type
+                text:  q.text
+            }
+            ret.options = q.options.map (o) -> o.option
+            return ret
+        console.log JSON.stringify poll
+    
+app.controller("Poll", Poll)

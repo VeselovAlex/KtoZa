@@ -52,11 +52,15 @@ func (ctrl *StatisticsController) handleGetStats(w http.ResponseWriter, r *http.
 	defer ctrl.lock.RUnlock()
 
 	// Кодируем статистику в JSON и отправляем
-	err := json.NewEncoder(w).Encode(ctrl.stat)
+	if ctrl.stat == nil {
+		w.Write([]byte("null"))
+	} else {
+		err := json.NewEncoder(w).Encode(ctrl.stat)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Println("STATISTICS [GET] :: Error:", err)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println("STATISTICS [GET] :: Error:", err)
+		}
 	}
 }
 

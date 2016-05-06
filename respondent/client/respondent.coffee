@@ -1,78 +1,82 @@
-Poll = React.createClass
-    getInitialState: -> {loaded: false}
-    
-    getCurrentView: -> @state.view
-    
+App = React.createClass
+    getInitialState: -> 
+        loaded: false
     componentDidMount: ->
         $.ajax
-            url: @props.fromUrl
-            dataType: 'json'
+            url: @props.pollURL
+            dataType: "json"
             cache: false
             success: (poll) =>
-                poll.loaded = true
-                poll.registrationAt= new Date poll.events.registration
-                poll.startAt = new Date poll.events.start
-                poll.endAt = new Date poll.events.end
-                
-                @setState poll
                 @setState
-                    view: 'intro'
-                    
-                setTimeout =>
-                        @setState
-                            view: 'registration'
-                    , 3000
-            error: (xhr, statu, err) =>
-                console.log "Bad request", status, err.toString()
-    render: -> 
-        if @state.loaded
-            return `(
-              <div className="poll">
-                <header>
-                  <h1>{this.state.title}</h1>
-                  <p>{this.state.caption}</p>
-                  <div className="event-timings">
-                    <div className="timing">
-                      Начало регистрации {this.state.registrationAt.toLocaleDateString()} 
-                      {' '} в {this.state.registrationAt.toLocaleTimeString()}
-                    </div>
-                    <div className="timing">
-                      Начало опроса {this.state.startAt.toLocaleDateString()} 
-                      {' '} в {this.state.startAt.toLocaleTimeString()}
-                    </div>
-                    <div className="timing">
-                      Окончание опроса {this.state.endAt.toLocaleDateString()} 
-                      {' '} в {this.state.endAt.toLocaleTimeString()}
-                    </div>
-                  </div>  
-                </header>
-                <nav>
-                    <a href="/#intro">Intro</a><br />
-                    <a href="/#registration">Registration</a><br />
-                    <a href="/#answers">Answers</a><br />
-                    <a href="/#finish">Finish</a><br />
-                    <a href="/#stats">Stats</a>
-                </nav>
-                <StateView getView={this.getCurrentView}/>
-              </div>
-            )`
-        else return `<div class="loading">Loading...</div>`
+                    loaded: true
+                    poll: poll     
+            error: =>
+                @setState
+                    loaded: true
+                    poll: null
+    render: ->
+        if not @state.loaded
+            return `<NotLoaded />`
+        if not @state.poll
+            return `<NoPoll />`
+        return `<Poll poll={this.state.poll}/>`
 
-# "intro"        -- начало опроса
-# "registration" -- регистрация
-# "answers"      -- прием ответов
-# "finish"       -- окончание опроса
-# "stats"        -- отображение статистики
-StateView = React.createClass
-    render: -> 
+NotLoaded = React.createClass
+    render: ->
+        `<div>Загрузка...</div>`
+
+NoPoll = React.createClass
+    render: ->
         return `(
-            <section className="view">
-              {this.props.getView()}
-            </section>
+            <div>Нет опроса. Повторите запрос позднее.</div>
         )`
-###        
         
+Poll = React.createClass
+    render: ->
+        poll = @props.poll
+        questions = poll.questions.map (q, n)-> `<Question data={q} key={n} name={n}/>`
+        return `(
+        <section>
+          <header>
+            <h1>{poll.title}</h1>
+            <p>{poll.caption}</p>
+          </header>
+          <div>
+            <h2>Вопросы</h2>
+            {questions}
+          </div>
+        </section>
+        )`
         
-            
-###
-ReactDOM.render `<Poll fromUrl="/testapi/poll.json"/>`, $("#poll")[0]
+Question = React.createClass
+    select: (e) ->
+        console.log e
+    render: -> 
+        q = @props.data
+        name = @props.name
+        select = @select
+        options = q.options.map (o, n) -> 
+            `<Option data={o} type={q.type} key={n} name={name} value={n} select={select}/>`
+        return `(
+          <div>
+            <h3>{this.props.data.text}</h3>
+            {options}
+          </div>
+        )`
+    
+Option = React.createClass
+    render: -> 
+        type = @props.type
+        input = ""
+        if type is 'single-option'
+            input = "radio"
+        else if type is 'multi-option'
+            input = "checkbox"
+        else
+            console.log "Bad question type"
+            return `<span>Bad question</span>`
+        name = @props.name
+        value = @props.value
+        return `<li><input type={input} name={name} value={value} onChange={}/>{this.props.data}</li>`
+    
+ReactDOM.render `<App pollURL="/testapi/poll.json"/>`, $("#app")[0]

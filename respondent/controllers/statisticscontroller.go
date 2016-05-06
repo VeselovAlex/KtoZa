@@ -110,7 +110,18 @@ func (ctrl *StatisticsController) doSync() {
 	for {
 		cpy, upd := moveIfNeeded()
 		if upd {
-			MasterServer.SendAnswerCache(cpy)
+			err := MasterServer.SendAnswerCache(cpy)
+			if err != nil {
+				// Если не удалось обновиться, нужно объединить текущий кэш с сохраненным
+				func() {
+					ctrl.cacheLock.Lock()
+					defer ctrl.cacheLock.Unlock()
+					ctrl.cache.JoinWith(cpy)
+					ctrl.needUpdate = true
+				}()
+				// Ждем секунду перед новой попыткой
+				time.Sleep(time.Second)
+			}
 		}
 	}
 }

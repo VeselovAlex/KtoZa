@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+<script src="app.js"></script>
+
+<style>
+  body {
+    min-height: 100vh;
+  }
+  
+  body>header {
+    width: 15%;
+    background-color: #eef;
+    height: 100%;
+    position: fixed;
+  }
+  
+  body>header>nav {
+    width: 90%;
+    margin: 0 auto;
+  }
+  
+  .logo {
+    width: 100%;
+    font-size: 200%;
+    text-align: center;
+    padding: 0.2em;
+    margin-bottom: 0.5em;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .view {
+    width: 85%;
+    margin: 0 0 0 15%;
+  }
+  
+  .view>.content {
+    width: 80%;
+    height: 100%;
+    padding: 1em;
+  }
+  
+  .view>aside {
+    position: fixed;
+    width: 17%;
+    height: 100%;
+    margin: 0 0 0 68%;
+    padding-top: 5%;
+  }
+  
+  .view>aside>* {
+    width: 90%;
+    margin: 0 auto 0.5em auto;
+  }
+  
+  .option>.glyphicon {
+    color: transparent;
+    margin-right: 1em;
+  }
+  
+  .option.selected>.glyphicon {
+    color: black;
+    margin-right: 1em;
+  }
+  
+  .option-stat:after {
+    content: " респондентов"
+  }
+  
+  #poll-progress .panel-content,
+  #poll-state {
+    padding: 0.5em 1em;
+  }
+  
+  #poll-progress,
+  #poll-state,
+  #poll-timings * {
+    border-color: black;
+  }
+  
+  #poll-progress button {
+    width: 100%;
+  }
+  
+  .timing {
+    border-color: black;
+    padding: 1em;
+  }
+  
+  .question {
+    border-color: black;
+  }
+  
+  .question .panel-heading {
+    cursor: pointer;
+  }
+</style>
+
+<body ng-app="ktoza-master" ng-controller="Poll as pollCtrl">
+  <header>
+    <div class="logo">Опрос</div>
+    <nav>
+      <ul class="nav nav-pills nav-stacked">
+        <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('intro')}">
+          <a href ng-click="pollCtrl.setView('intro')">Начало</a>
+        </li>
+        <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('poll')}" ng-show="pollCtrl.isAuthorized()">
+          <a href ng-click="pollCtrl.setView('poll')">Опрос</a>
+        </li>
+        <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('stats')}" ng-show="pollCtrl.isAuthorized() && pollCtrl.hasPoll()">
+          <a href ng-click="pollCtrl.setView('stats')">Статистика</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+  <div class="view">
+    <aside>
+        <div ng-show="pollCtrl.isAuthorized() && pollCtrl.isCurrentView('poll') && pollCtrl.isValidPoll()">
+          <button class="btn btn-primary" style="width:100%; margin: 2em auto" ng-click="pollCtrl.submit()">
+            Сохранить опрос
+            </button>
+        </div>
+    </aside>
+    <div class="content">
+      <section ng-show="pollCtrl.isCurrentView('intro')">
+        <h1>KtoZa<br><small>Платформа для создания опросов</small></h1>
+        <div ng-hide="pollCtrl.isAuthorized()" class="panel panel-warning" style="width:50%; margin: 2em auto">
+          <div class="panel-heading">
+            <h2 class="panel-title">Для продолжения работы необходимо авторизоваться</h2>
+          </div>
+          <div class="panel-body">
+            Пароль: <input type="password" class="form-control" /><br>
+            <button type="button" class="btn btn-primary pull-right" ng-click="pollCtrl.authorize()">Авторизоваться</button>
+          </div>
+        </div>
+      </section>
+
+      <section ng-show="pollCtrl.isCurrentView('poll')  && !pollCtrl.hasPoll()">
+        Вы еще не создали опрос. <a href ng-click="pollCtrl.createPoll()">Создать</a>?
+      </section>
+      <section ng-show="pollCtrl.hasPoll() && pollCtrl.isCurrentView('poll')">
+        <!-- Poll header -->
+        <header class="page-header">
+          <h1>
+            Название опроса:
+            <input type="text" class="form-control" ng-model="pollCtrl.poll.title" style="width: 100%">
+          </h1>
+          <div class="text-danger" ng-hide="pollCtrl.hasTitle()">Название не должно быть пустым</div>
+          <h1>
+            <small>Описание опроса:<br>
+            <textarea ng-model="pollCtrl.poll.caption" class="form-control" style="width: 100%;" rows="4">Описание опроса</textarea>
+            </small>
+          </h1>
+        </header>
+
+        <!-- Timings -->
+        <div class="row">
+          <div class="col-md-4">
+            <div class="timing panel">
+              <div class="panel-heading">
+                <h4 class="panel-title">Начало регистрации</h4>
+              </div>
+              <input type="datetime-local" class="form-control" ng-model="pollCtrl.poll.events.registration" required>
+              <div class="text-danger" ng-hide="pollCtrl.isValidRegTime()">
+                Начало регистрации должно быть позже, чем через 5 секунд с текущего времени
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="timing panel">
+              <div class="panel-heading">
+                <h4 class="panel-title">Начало опроса</h4>
+              </div>
+              <input type="datetime-local" class="form-control" ng-model="pollCtrl.poll.events.start" required>
+              <div class="text-danger" ng-hide="pollCtrl.isValidStartTime()">
+                Начало опроса должно быть позже, чем через 1 минуту с начала времени
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="timing panel">
+              <div class="panel-heading">
+                <h4 class="panel-title">Окончание опроса</h4>
+              </div>
+              <input type="datetime-local" class="form-control" ng-model="pollCtrl.poll.events.end" required>
+              <div class="text-danger" ng-hide="pollCtrl.isValidEndTime()">
+                Окончание опроса должно быть позже, чем через 1 минуту с начала опроса
+              </div>
+            </div>
+          </div>
+        </div>
+        <hr>
+
+        <!-- Questions -->
+        <div>
+          <h2>Вопросы</h2>
+          <div class="question panel" ng-repeat="(qNum, question) in pollCtrl.angQuestions">
+            <!-- Question header -->
+            <div class="panel-heading">
+              <button type="button" class="close" ng-click="pollCtrl.deleteQuestion(qNum)">&times;</button>
+              <h3>Вопрос: <input type="text" class="form-control" ng-model="question.text"></h3>
+              <div class="text-danger" ng-hide="pollCtrl.hasText(question)">
+                Текст вопроса не должен быть пустым
+              </div>
+              <div>
+                Тип вопроса:
+                <input type="radio" ng-model="question.type" value="single-option"> Один вариант ответа
+                <input type="radio" ng-model="question.type" value="multi-option"> Несколько вариантов ответа
+              </div>
+              <div class="text-danger" ng-hide="pollCtrl.hasType(question)">
+                Тип вопроса не должен быть пустым
+              </div>
+            </div>
+            <!-- Question options -->
+            <div class="panel-body">
+              <h3>Варианты ответа</h3>
+              <ul class="list-group">
+                <li class="list-group-item" ng-repeat="(optNum, opt) in question.options">
+                  <button type="button" class="close" ng-click="pollCtrl.deleteOption(qNum, optNum)">&times;</button>
+                  <input type="text" class="form-control" ng-model="opt.option">
+                  <div class="text-danger" ng-hide="pollCtrl.isValidOption(opt)">
+                    Вариант ответа не должен быть пустым
+                  </div>
+                </li>
+              </ul>
+              <div>
+                <button class="btn btn-success pull-right" ng-click="pollCtrl.newOption(qNum)" style="margin: 2em 0">Добавить вариант</button>
+              </div>
+              <div class="text-danger" ng-hide="pollCtrl.hasOptions(question)">
+                Вопрос должен иметь хотя бы 2 варианта ответа
+              </div>
+            </div>
+          </div>
+          <div>
+            <button ng-click="pollCtrl.newQuestion()" class="btn btn-success pull-right" style="margin: 2em 0">Добавить вопрос</button>
+          </div>
+          <div class="text-danger" ng-hide="pollCtrl.hasQuestions()">
+            Опрос должен иметь хотя бы 1 вопрос
+          </div>
+        </div>
+      </section>
+      <section class="statistics" ng-show="!pollCtrl.hasStatistics() && pollCtrl.isCurrentView('stats')">
+        Для данного опроса нет статистики
+      </section>
+      <section class="statistics" ng-show="pollCtrl.hasStatistics() && pollCtrl.isCurrentView('stats')">
+        <h2>
+            Статистика<br>
+            <small>
+              Принято <span ng-bind="pollCtrl.statistics.respondents"></span>
+              ответов (по состоянию на <span ng-bind="pollCtrl.statistics.date| date: 'dd.MM.yyyy HH:mm:ss'"></span>)
+            </small>
+          </h2>
+          <div class="panel" ng-repeat="(qNum, qStat) in pollCtrl.statistics.questions">
+            <div class="panel-heading">
+              <h3 class="panel-title" ng-bind="question.text"></h3>
+            </div>
+            <div class="panel-body">
+              Получено <span ng-bind="qStat.answerCount"></span> ответов
+            </div>
+            <ul class="list-group" ng-init="question = pollCtrl.poll.questions[qNum]">
+              <li class="list-group-item" ng-repeat="(optNum, optStat) in qStat.options">
+                <span ng-bind="question.options[optNum]"></span>
+                <span class="option-stat badge">{{optStat.count}} из {{qStat.answerCount}}</span>
+              </li>
+            </ul>
+          </div>
+      </section>
+    </div>
+  </div>
+</body>
