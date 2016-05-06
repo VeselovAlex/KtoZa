@@ -43,17 +43,34 @@ class Poll
                 
                     
         # Получение статистики
-        $http
-            .get "api/stats",
-                responseType: "json"
-            .then (resp) =>
-                ###
-                # Успешное завершение запроса
-                ###
-                statistics = resp.data
-                statistics.date = new Date(statistics.date)
-                dataBuf.statistics = statistics
+        @loadStat = =>
+            $http
+                .get "api/stats",
+                    responseType: "json"
+                .then (resp) =>
+                    ###
+                    # Успешное завершение запроса
+                    ###
+                    statistics = resp.data
+                    statistics.date = new Date(statistics.date)
+                    dataBuf.statistics = statistics
+        @checkReg = =>
+            $http
+                .get "api/register",
+                    responseType: "json"
+                .then (resp) =>
+                        @reg = resp.data
+        @register = =>
+            $http
+                .post "api/register"
+                .then =>
+                        @reg = true
+                    , =>
+                        @reg = false
                 
+        @checkReg()
+        
+        # Отправка ответа      
         @submit = =>    
             toSubmit = @applies.map (a) ->
                 ans = []
@@ -66,6 +83,7 @@ class Poll
                 .then =>
                         # Успех
                         console.log 'Submitted'
+                        @reg = false
                         @setView('intro')
                     , =>
                         # Отказ
@@ -86,30 +104,34 @@ class Poll
         if end <= 0 
             @pollState = "ended"
             @countdown.update(-1)
+            @loadStat()
         else if start <= 0
             @pollState = "started"
             @countdown.update(Math.ceil(end / 1000))
             $timeout => 
-                @pollState = "ended"
-                @countdown.update(-1)
-            , end
+                    @pollState = "ended"
+                    @countdown.update(-1)
+                    @loadStat()
+                , end
         else if reg <= 0
             @countdown.update(Math.ceil(start / 1000))
             @pollState = "registration"
             $timeout => 
-                @pollState = "ended"
-                @countdown.update(-1)
-            , end
+                    @pollState = "ended"
+                    @countdown.update(-1)
+                    @loadStat()
+                , end
             $timeout => 
-                @pollState = "started"
-                @countdown.update Math.ceil((@events.endAt - new Date()) / 1000)
-            , start
+                    @pollState = "started"
+                    @countdown.update Math.ceil((@events.endAt - new Date()) / 1000)
+                , start
         else
             @pollState = "before"
             @countdown.update(Math.ceil(reg / 1000))
             $timeout => 
                     @pollState = "ended"
                     @countdown.update(-1)
+                    @loadStat()
                 , end   
             $timeout => 
                     @pollState = "started"
@@ -128,8 +150,7 @@ class Poll
         @loaded && (@pollState is "ended")        
     
     # Управление регистрацией
-    isRegistered: => true
-    register: =>  
+    isRegistered: => @reg
     
     # Управление обратным отсчетом
     countdown: 

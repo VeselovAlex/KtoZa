@@ -19,7 +19,6 @@
       this.apply = bind(this.apply, this);
       this.isCurrentView = bind(this.isCurrentView, this);
       this.setView = bind(this.setView, this);
-      this.register = bind(this.register, this);
       this.isRegistered = bind(this.isRegistered, this);
       this.canShowStatistics = bind(this.canShowStatistics, this);
       this.canShowQuestions = bind(this.canShowQuestions, this);
@@ -70,20 +69,41 @@
           }, 1000);
         };
       })(this));
-      $http.get("api/stats", {
-        responseType: "json"
-      }).then((function(_this) {
-        return function(resp) {
+      this.loadStat = (function(_this) {
+        return function() {
+          return $http.get("api/stats", {
+            responseType: "json"
+          }).then(function(resp) {
 
-          /*
-           * Успешное завершение запроса
-           */
-          var statistics;
-          statistics = resp.data;
-          statistics.date = new Date(statistics.date);
-          return dataBuf.statistics = statistics;
+            /*
+             * Успешное завершение запроса
+             */
+            var statistics;
+            statistics = resp.data;
+            statistics.date = new Date(statistics.date);
+            return dataBuf.statistics = statistics;
+          });
         };
-      })(this));
+      })(this);
+      this.checkReg = (function(_this) {
+        return function() {
+          return $http.get("api/register", {
+            responseType: "json"
+          }).then(function(resp) {
+            return _this.reg = resp.data;
+          });
+        };
+      })(this);
+      this.register = (function(_this) {
+        return function() {
+          return $http.post("api/register").then(function() {
+            return _this.reg = true;
+          }, function() {
+            return _this.reg = false;
+          });
+        };
+      })(this);
+      this.checkReg();
       this.submit = (function(_this) {
         return function() {
           var toSubmit;
@@ -99,6 +119,7 @@
           });
           return $http.post("api/submit", toSubmit).then(function() {
             console.log('Submitted');
+            _this.reg = false;
             return _this.setView('intro');
           }, function() {
             console.log('Not submitted');
@@ -120,13 +141,15 @@
       if (end <= 0) {
         this.pollState = "ended";
         this.countdown.update(-1);
+        this.loadStat();
       } else if (start <= 0) {
         this.pollState = "started";
         this.countdown.update(Math.ceil(end / 1000));
         $timeout((function(_this) {
           return function() {
             _this.pollState = "ended";
-            return _this.countdown.update(-1);
+            _this.countdown.update(-1);
+            return _this.loadStat();
           };
         })(this), end);
       } else if (reg <= 0) {
@@ -135,7 +158,8 @@
         $timeout((function(_this) {
           return function() {
             _this.pollState = "ended";
-            return _this.countdown.update(-1);
+            _this.countdown.update(-1);
+            return _this.loadStat();
           };
         })(this), end);
         $timeout((function(_this) {
@@ -150,7 +174,8 @@
         $timeout((function(_this) {
           return function() {
             _this.pollState = "ended";
-            return _this.countdown.update(-1);
+            _this.countdown.update(-1);
+            return _this.loadStat();
           };
         })(this), end);
         $timeout((function(_this) {
@@ -177,10 +202,8 @@
     };
 
     Poll.prototype.isRegistered = function() {
-      return true;
+      return this.reg;
     };
-
-    Poll.prototype.register = function() {};
 
     Poll.prototype.countdown = {
       raw: 0,

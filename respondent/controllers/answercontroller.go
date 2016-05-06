@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/VeselovAlex/KtoZa/model"
 )
@@ -17,8 +18,9 @@ type AnswerListener interface {
 type AnswerController struct {
 	listeners []AnswerListener
 
-	lock      sync.RWMutex
-	validator Validator
+	lock        sync.RWMutex
+	validator   Validator
+	isValidTime func(time.Time) bool
 }
 
 func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +36,19 @@ func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Проверка по времени
+	if !ctrl.isValidTime(time.Now()) {
+		http.Error(w, "Not in time", http.StatusBadRequest)
+		return
+	}
+	
+	// Проверка регистрации
+	cookie, err := r.Cookie(regKeyCookieName)
+	if err != nil || !SessionPool.Contains(cookie.Value) {
+		http.Error(w, "Not registered", http.StatusForbidden)
+		return
+	}
+	
 	// Проверка ответов
 	valid := func() bool {
 		ctrl.lock.RLock()
@@ -45,10 +60,16 @@ func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}()
 
 	if valid {
+		// Удаляем cookie
+		http.SetCookie(w, &http.Cookie{
+			Name: regKeyCookieName,
+			MaxAge: -1,
+		})
 		w.Write([]byte("true"))
 		ctrl.notifyListeners(answers)
 	} else {
 		w.Write([]byte("false"))
+		w.WriteHeader(http.StatusBadRequest)
 	}
 }
 
@@ -71,5 +92,10 @@ func (ctrl *AnswerController) OnPollUpdate(poll *model.Poll) {
 	defer ctrl.lock.Unlock()
 	if poll != nil {
 		ctrl.validator = NewValidatorFor(poll)
+		ctrl.isValidTime = func(t time.Time) bool {
+			start := poll.Events.StartAt
+			end := poll.Events.EndAt
+			return start.Before(t) && end.After(t)
+		}
 	}
 }

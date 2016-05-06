@@ -57,47 +57,18 @@
     width: 90%;
     margin: 0 auto 0.5em auto;
   }
-  
-  .option>.glyphicon {
-    color: transparent;
-    margin-right: 1em;
-  }
-  
-  .option.selected>.glyphicon {
-    color: black;
-    margin-right: 1em;
-  }
-  
+    
   .option-stat:after {
     content: " респондентов"
   }
-  
-  #poll-progress .panel-content,
-  #poll-state {
-    padding: 0.5em 1em;
-  }
-  
-  #poll-progress,
-  #poll-state,
-  #poll-timings * {
-    border-color: black;
-  }
-  
-  #poll-progress button {
-    width: 100%;
-  }
-  
+    
   .timing {
     border-color: black;
     padding: 1em;
   }
   
-  .question {
+  .question, .question-stat {
     border-color: black;
-  }
-  
-  .question .panel-heading {
-    cursor: pointer;
   }
 </style>
 
@@ -137,7 +108,8 @@
             <h2 class="panel-title">Для продолжения работы необходимо авторизоваться</h2>
           </div>
           <div class="panel-body">
-            Пароль: <input type="password" class="form-control" /><br>
+            Пароль: <input type="password" class="form-control" ng-model="pollCtrl.pwd" />
+            <div class="text-danger" ng-show="pollCtrl.authRequested && pollCtrl.badPwd">Неверный пароль</div>
             <button type="button" class="btn btn-primary pull-right" ng-click="pollCtrl.authorize()">Авторизоваться</button>
           </div>
         </div>
@@ -258,7 +230,7 @@
               ответов (по состоянию на <span ng-bind="pollCtrl.statistics.date| date: 'dd.MM.yyyy HH:mm:ss'"></span>)
             </small>
           </h2>
-        <div class="panel" ng-repeat="(qNum, qStat) in pollCtrl.statistics.questions">
+        <div class="panel question-stat" ng-repeat="(qNum, qStat) in pollCtrl.statistics.questions">
           <div class="panel-heading">
             <h3 class="panel-title" ng-bind="question.text"></h3>
           </div>

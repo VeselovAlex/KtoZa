@@ -57,6 +57,10 @@
     margin: 0 auto 0.5em auto;
   }
   
+  .option {
+    cursor: pointer;
+  }
+  
   .option>.glyphicon {
     color: transparent;
     margin-right: 1em;
@@ -93,6 +97,17 @@
   .question .panel-heading {
     cursor: pointer;
   }
+  
+  .countdown {
+    font-size: 300%;
+    font-weight: 200;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .reg-btn {
+    margin-left: 2em;
+  }
 </style>
 
 <body ng-app="ktoza-respondent" ng-controller="Poll as pollCtrl">
@@ -115,11 +130,11 @@
   <div class="view">
     <aside>
       <div id="poll-state" class="panel" ng-hide="pollCtrl.pollState === 'before'">
-        <h4 ng-show="pollCtrl.pollState === 'registration'">Идет регистрация</h4>
-        <h4 ng-show="pollCtrl.pollState === 'started'">Идет опрос</h4>
+        <h4 ng-show="pollCtrl.pollState === 'registration'">Идет регистрация...</h4>
+        <h4 ng-show="pollCtrl.pollState === 'started'">Идет опрос...</h4>
         <h4 ng-show="pollCtrl.pollState === 'ended'">Опрос завершен</h4>
       </div>
-      <div id="poll-timings" class="list-group">
+      <div id="poll-timings" class="list-group" ng-show="pollCtrl.loaded">
         <span class="list-group-item">
         <h4 class="list-group-item-heading">Начало регистрации</h4>
         <p class="list-group-item-text" ng-bind="pollCtrl.events.registrationAt| date: 'dd.MM.yyyy в HH.mm.ss'"></p>
@@ -148,6 +163,7 @@
             Не удалось отправить ответ
           </div>
         </div>
+      </div>
     </aside>
     <div class="content">
       <section ng-hide="pollCtrl.loaded">
@@ -166,13 +182,13 @@
             <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>
           </div>
           <div ng-show="pollCtrl.pollState === 'registration'">
-            <h2>Идет регистрация</h2>
-            <h2>Опрос начнется через</h2>
-            <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>
-            <button class="btn btn-primary btn-lg" ng-disabled="pollCtrl.isRegistered()">
+            <h2>Идет регистрация...</h2>
+            <button class="btn btn-primary btn-lg reg-btn" ng-disabled="pollCtrl.isRegistered()" ng-click="pollCtrl.register()">
               <span ng-show="pollCtrl.isRegistered()">Вы зарегистрированы</span>
               <span ng-hide="pollCtrl.isRegistered()">Зарегистрироваться</span>
-            </button>
+            </button><br>
+            <h2>Опрос начнется через</h2>
+            <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>
           </div>
           <div ng-show="pollCtrl.pollState === 'started'">
             <h2>Идет опрос...
@@ -228,5 +244,5 @@
         </div>
       </section>
     </div>
-    </div>
+  </div>
 </body>

@@ -45,7 +45,7 @@ func (s *sessionPool) Delete(key string) {
 	s.lock.RUnlock()
 }
 
-const regKeyCookieName = "reg-key"
+const regKeyCookieName = "REGKEY"
 
 type SessionController struct {
 	lock    sync.RWMutex

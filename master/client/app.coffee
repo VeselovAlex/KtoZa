@@ -6,39 +6,39 @@ class Poll
             .get "api/poll",
                 responseType:"json"
             .then (resp) =>
-                    @poll = resp.data
-                    # Разбор дат
-                    @poll.events.registration = new Date(@poll.events.registration)
-                    @poll.events.registration.setMilliseconds(0)
-                    @poll.events.start = new Date(@poll.events.start)
-                    @poll.events.start.setMilliseconds(0)
-                    @poll.events.end = new Date(@poll.events.end)
-                    @poll.events.end.setMilliseconds(0)
-                    # Оборачиваем вопросы
-                    @angQuestions = @poll.questions.map (q) ->
-                        angQ = {
-                            text: q.text
-                            type: q.type
-                        }
-                        angQ.options = q.options.map (o) -> 
-                            option: o
-                        return angQ
+                @readPoll resp.data
         $http
             .get "api/stats",
                 responseType: "json"
             .then (resp) =>
-                    @statistics = resp.data
-                    @statistics.date = new Date(@statistics.date)
-                    @statistics.date.setMilliseconds(0)
-                    
+                    @readStatistics resp.data
+             
         $websocket "ws://#{location.host}#{location.pathname}api/ws"
             .onMessage (msg) =>
                 message = JSON.parse msg.data
                 if message.event is "poll-update"
-                    @poll = message.data
+                    @readPoll message.data
                     @statistics = null
                 else if message.event is "stats-update"
-                    @statistics = message.data
+                    @readStatistics message.data
+                   
+        @checkAuth = =>
+            $http
+                .get "api/auth"
+                .then =>
+                        @auth = true
+                    , =>
+                        @auth = false
+                        @badPwd = true
+                            
+        @authorize = =>
+            $http
+                .post "api/auth?p=#{@pwd}"
+                .then =>
+                        @checkAuth()
+                        @authRequested = true
+                        
+        @checkAuth()
         
         @submit = =>
             if confirm "При обновлении опроса текущая статистика будет удалена. Продолжить?"
@@ -75,6 +75,30 @@ class Poll
             }
         }   
         @angQuestions = []
+    
+    readPoll: (from) =>
+        @poll = from
+        # Разбор дат
+        @poll.events.registration = new Date(@poll.events.registration)
+        @poll.events.registration.setMilliseconds(0)
+        @poll.events.start = new Date(@poll.events.start)
+        @poll.events.start.setMilliseconds(0)
+        @poll.events.end = new Date(@poll.events.end)
+        @poll.events.end.setMilliseconds(0)
+        # Оборачиваем вопросы
+        @angQuestions = @poll.questions.map (q) ->
+            angQ = {
+                text: q.text
+                type: q.type
+            }
+            angQ.options = q.options.map (o) -> 
+                option: o
+            return angQ
+    
+    readStatistics: (from) =>
+        @statistics = from
+        @statistics.date = new Date(@statistics.date)
+        @statistics.date.setMilliseconds(0)
     
     # Валидация
     hasPoll: => 
@@ -118,12 +142,7 @@ class Poll
     
     # Управление авторизацией
     isAuthorized: => 
-        if @auth?
-            return @auth
-        console.log 'Checking auth'
-        @auth = false
-    authorize: =>  
-        @auth = true
+        @auth
     
     #Управление вопросами
     newQuestion: =>

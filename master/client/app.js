@@ -15,7 +15,6 @@
       this.newOption = bind(this.newOption, this);
       this.deleteQuestion = bind(this.deleteQuestion, this);
       this.newQuestion = bind(this.newQuestion, this);
-      this.authorize = bind(this.authorize, this);
       this.isAuthorized = bind(this.isAuthorized, this);
       this.isValidPoll = bind(this.isValidPoll, this);
       this.isValidEndTime = bind(this.isValidEndTime, this);
@@ -25,40 +24,21 @@
       this.hasTitle = bind(this.hasTitle, this);
       this.hasStatistics = bind(this.hasStatistics, this);
       this.hasPoll = bind(this.hasPoll, this);
+      this.readStatistics = bind(this.readStatistics, this);
+      this.readPoll = bind(this.readPoll, this);
       this.createPoll = bind(this.createPoll, this);
       $http.get("api/poll", {
         responseType: "json"
       }).then((function(_this) {
         return function(resp) {
-          _this.poll = resp.data;
-          _this.poll.events.registration = new Date(_this.poll.events.registration);
-          _this.poll.events.registration.setMilliseconds(0);
-          _this.poll.events.start = new Date(_this.poll.events.start);
-          _this.poll.events.start.setMilliseconds(0);
-          _this.poll.events.end = new Date(_this.poll.events.end);
-          _this.poll.events.end.setMilliseconds(0);
-          return _this.angQuestions = _this.poll.questions.map(function(q) {
-            var angQ;
-            angQ = {
-              text: q.text,
-              type: q.type
-            };
-            angQ.options = q.options.map(function(o) {
-              return {
-                option: o
-              };
-            });
-            return angQ;
-          });
+          return _this.readPoll(resp.data);
         };
       })(this));
       $http.get("api/stats", {
         responseType: "json"
       }).then((function(_this) {
         return function(resp) {
-          _this.statistics = resp.data;
-          _this.statistics.date = new Date(_this.statistics.date);
-          return _this.statistics.date.setMilliseconds(0);
+          return _this.readStatistics(resp.data);
         };
       })(this));
       $websocket("ws://" + location.host + location.pathname + "api/ws").onMessage((function(_this) {
@@ -66,13 +46,32 @@
           var message;
           message = JSON.parse(msg.data);
           if (message.event === "poll-update") {
-            _this.poll = message.data;
+            _this.readPoll(message.data);
             return _this.statistics = null;
           } else if (message.event === "stats-update") {
-            return _this.statistics = message.data;
+            return _this.readStatistics(message.data);
           }
         };
       })(this));
+      this.checkAuth = (function(_this) {
+        return function() {
+          return $http.get("api/auth").then(function() {
+            return _this.auth = true;
+          }, function() {
+            _this.auth = false;
+            return _this.badPwd = true;
+          });
+        };
+      })(this);
+      this.authorize = (function(_this) {
+        return function() {
+          return $http.post("api/auth?p=" + _this.pwd).then(function() {
+            _this.checkAuth();
+            return _this.authRequested = true;
+          });
+        };
+      })(this);
+      this.checkAuth();
       this.submit = (function(_this) {
         return function() {
           var poll;
@@ -118,6 +117,35 @@
         }
       };
       return this.angQuestions = [];
+    };
+
+    Poll.prototype.readPoll = function(from) {
+      this.poll = from;
+      this.poll.events.registration = new Date(this.poll.events.registration);
+      this.poll.events.registration.setMilliseconds(0);
+      this.poll.events.start = new Date(this.poll.events.start);
+      this.poll.events.start.setMilliseconds(0);
+      this.poll.events.end = new Date(this.poll.events.end);
+      this.poll.events.end.setMilliseconds(0);
+      return this.angQuestions = this.poll.questions.map(function(q) {
+        var angQ;
+        angQ = {
+          text: q.text,
+          type: q.type
+        };
+        angQ.options = q.options.map(function(o) {
+          return {
+            option: o
+          };
+        });
+        return angQ;
+      });
+    };
+
+    Poll.prototype.readStatistics = function(from) {
+      this.statistics = from;
+      this.statistics.date = new Date(this.statistics.date);
+      return this.statistics.date.setMilliseconds(0);
     };
 
     Poll.prototype.hasPoll = function() {
@@ -187,15 +215,7 @@
     };
 
     Poll.prototype.isAuthorized = function() {
-      if (this.auth != null) {
-        return this.auth;
-      }
-      console.log('Checking auth');
-      return this.auth = false;
-    };
-
-    Poll.prototype.authorize = function() {
-      return this.auth = true;
+      return this.auth;
     };
 
     Poll.prototype.newQuestion = function() {

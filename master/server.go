@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,63 +10,45 @@ import (
 	"github.com/VeselovAlex/KtoZa/master/controllers"
 )
 
-type Authorized struct {
-	hash string
-}
-
-func NewAuthorized(hash string) *Authorized {
-	return &Authorized{hash}
-}
-
-func (a *Authorized) New(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h.ServeHTTP(w, r)
-	})
-}
-
 var appHost string
+var pwd string
+var needUsage bool
+var logFile string
 
 func init() {
-	appHost = ":8888"
+	// Чтение параметров командной строки
+	flag.StringVar(&appHost, "a", ":8888", "This server host")
+	flag.BoolVar(&needUsage, "h", false, "Show this help")
+	flag.StringVar(&logFile, "f", "", "Write log to file")
+	flag.StringVar(&pwd, "p", "", "Master server password, required")
+	flag.Parse()
+
+	if needUsage || pwd == "" {
+		showUsage()
+		os.Exit(-1)
+	}
 }
 
 func main() {
-	fmt.Println(" KtoZa poll provider. Master server")
-	var err error
-	/*
-		hash, err := ioutil.ReadFile("hash.dat")
-		if err != nil {
-			got := false
-			var pwd string
-			var conf string
-			for !got {
-				fmt.Println("Введите новый пароль:")
-				fmt.Scanln(&pwd)
-				fmt.Println("Подтвердите пароль:")
-				fmt.Scanln(&conf)
-				got = conf == pwd && pwd != ""
-			}
-			h := md5.New()
-			io.WriteString(h, pwd)
-			hash = h.Sum(nil)
-			ioutil.WriteFile("hash.dat", hash, 0755)
-		}
-		auth := NewAuthorized(string(hash))
-	*/
+	fmt.Println("KtoZa poll provider. Master server")
 	log.Println("SERVER INIT :: Initialization started...")
-	log.Println("SERVER INIT :: Opening server data folder...")
-	data := "data"
-	// Создаем папку выходных данных
-	err = os.Mkdir(data, 0755)
-	if err != nil && !os.IsExist(err) {
-		// Папка не создана и не существует
-		log.Fatalln("SERVER INIT :: Initialization failed:", err)
+
+	loadDataStorage()
+	initHandlers()
+
+	log.Println("SERVER INIT :: Starting server on", appHost)
+	err := http.ListenAndServe(appHost, nil)
+	if err != nil {
+		log.Fatalln("SERVER INIT :: Server stoppped cause:", err)
 	}
+}
 
-	log.Println("SERVER INIT :: Loading data storage...")
-	controllers.LoadFileSystemStorage(data)
-
+func initHandlers() {
 	log.Println("SERVER INIT :: Initializing request handlers")
+
+	log.Println("SERVER INIT :: #   /api/auth")
+	auth := controllers.NewUserControl(pwd)
+	http.Handle("/api/auth", auth)
 
 	log.Println("SERVER INIT :: #   /api/ws")
 	wsCtrl := controllers.NewWebSocketController()
@@ -73,21 +56,34 @@ func main() {
 
 	log.Println("SERVER INIT :: #   /api/stats")
 	statCtrl := controllers.NewStatisticsController(wsCtrl)
-	http.Handle("/api/stats", statCtrl)
+	http.Handle("/api/stats", auth.Authorized(statCtrl, "DELETE"))
 
 	log.Println("SERVER INIT :: #   /api/poll")
 	pollCtrl := controllers.NewPollController(wsCtrl, statCtrl)
-	http.Handle("/api/poll", pollCtrl)
+	http.Handle("/api/poll", auth.Authorized(pollCtrl, "PUT", "DELETE"))
 
 	log.Println("SERVER INIT :: #   /")
 	fs := http.FileServer(http.Dir("client"))
 	http.Handle("/", http.StripPrefix("/", fs))
 
 	log.Println("SERVER INIT :: Initialization complete")
-	log.Println("SERVER INIT :: Starting server on", appHost)
-	// Starting server on specified addr
-	err = http.ListenAndServe(appHost, nil)
-	if err != nil {
-		log.Fatalf("SERVER INIT :: Unable to start master server on %s: %v\n", appHost, err)
+}
+
+func loadDataStorage() {
+
+	log.Println("SERVER INIT :: Opening server data folder...")
+	data := "data"
+	// Создаем папку выходных данных
+	err := os.Mkdir(data, 0755)
+	if err != nil && !os.IsExist(err) {
+		// Папка не создана и не существует
+		log.Fatalln("SERVER INIT :: Initialization failed:", err)
 	}
+
+	log.Println("SERVER INIT :: Loading data storage...")
+	controllers.LoadFileSystemStorage(data)
+}
+
+func showUsage() {
+	flag.Usage()
 }
