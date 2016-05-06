@@ -5,6 +5,7 @@
 
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
 <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+<script src="https://cdn.rawgit.com/gdi2290/angular-websocket/v1.0.9/angular-websocket.min.js"></script>
 <script src="app.js"></script>
 
 <style>
@@ -119,11 +120,14 @@
   </header>
   <div class="view">
     <aside>
-        <div ng-show="pollCtrl.isAuthorized() && pollCtrl.isCurrentView('poll') && pollCtrl.isValidPoll()">
-          <button class="btn btn-primary" style="width:100%; margin: 2em auto" ng-click="pollCtrl.submit()">
-            Сохранить опрос
-            </button>
+      <div ng-show="pollCtrl.isAuthorized() && pollCtrl.isCurrentView('poll') && pollCtrl.isValidPoll()">
+        <button class="btn btn-primary" style="width:100%; margin: 2em auto" ng-click="pollCtrl.submit()">
+          Сохранить опрос
+        </button>
+        <div class="text-danger" ng-show="pollCtrl.badSubmission">
+          Не удалось обновить опрос
         </div>
+      </div>
     </aside>
     <div class="content">
       <section ng-show="pollCtrl.isCurrentView('intro')">
@@ -254,20 +258,20 @@
               ответов (по состоянию на <span ng-bind="pollCtrl.statistics.date| date: 'dd.MM.yyyy HH:mm:ss'"></span>)
             </small>
           </h2>
-          <div class="panel" ng-repeat="(qNum, qStat) in pollCtrl.statistics.questions">
-            <div class="panel-heading">
-              <h3 class="panel-title" ng-bind="question.text"></h3>
-            </div>
-            <div class="panel-body">
-              Получено <span ng-bind="qStat.answerCount"></span> ответов
-            </div>
-            <ul class="list-group" ng-init="question = pollCtrl.poll.questions[qNum]">
-              <li class="list-group-item" ng-repeat="(optNum, optStat) in qStat.options">
-                <span ng-bind="question.options[optNum]"></span>
-                <span class="option-stat badge">{{optStat.count}} из {{qStat.answerCount}}</span>
-              </li>
-            </ul>
+        <div class="panel" ng-repeat="(qNum, qStat) in pollCtrl.statistics.questions">
+          <div class="panel-heading">
+            <h3 class="panel-title" ng-bind="question.text"></h3>
           </div>
+          <div class="panel-body">
+            Получено <span ng-bind="qStat.answerCount"></span> ответов
+          </div>
+          <ul class="list-group" ng-init="question = pollCtrl.poll.questions[qNum]">
+            <li class="list-group-item" ng-repeat="(optNum, optStat) in qStat.options">
+              <span ng-bind="question.options[optNum]"></span>
+              <span class="option-stat badge">{{optStat.count}} из {{qStat.answerCount}}</span>
+            </li>
+          </ul>
+        </div>
       </section>
     </div>
   </div>

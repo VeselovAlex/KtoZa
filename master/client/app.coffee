@@ -1,7 +1,7 @@
-app = angular.module('ktoza-master', [])
+app = angular.module('ktoza-master', ['ngWebSocket'])
 
 class Poll
-    constructor: ($http) ->
+    constructor: ($http, $websocket) ->
         $http
             .get "api/poll",
                 responseType:"json"
@@ -30,7 +30,39 @@ class Poll
                     @statistics = resp.data
                     @statistics.date = new Date(@statistics.date)
                     @statistics.date.setMilliseconds(0)
-            
+                    
+        $websocket "ws://#{location.host}#{location.pathname}api/ws"
+            .onMessage (msg) =>
+                message = JSON.parse msg.data
+                if message.event is "poll-update"
+                    @poll = message.data
+                    @statistics = null
+                else if message.event is "stats-update"
+                    @statistics = message.data
+        
+        @submit = =>
+            if confirm "При обновлении опроса текущая статистика будет удалена. Продолжить?"
+                poll = {
+                    title: @poll.title
+                    caption: @poll.caption
+                    events: @poll.events
+                }
+                poll.questions = @angQuestions.map (q) ->
+                    ret = {
+                        type:  q.type
+                        text:  q.text
+                    }
+                    ret.options = q.options.map (o) -> o.option
+                    return ret
+                $http
+                    .put "api/poll", poll
+                    .then =>
+                            @poll = poll
+                            console.log 'Submitted'
+                        , =>
+                            console.log 'Not submitted'
+                            @badSubmission = true
+                              
     createPoll: =>
         now = new Date()
         now.setMilliseconds(0)
@@ -126,20 +158,6 @@ class Poll
     collapse: (q) =>
         @collapsed[q] = !@collapsed[q]
     isCollapsed: (q) =>  @collapsed[q]
-    
-    submit: =>
-        poll = {
-            title: @poll.title
-            caption: @poll.caption
-            events: @poll.events
-        }
-        poll.questions = @angQuestions.map (q) ->
-            ret = {
-                type:  q.type
-                text:  q.text
-            }
-            ret.options = q.options.map (o) -> o.option
-            return ret
-        console.log JSON.stringify poll
+
     
 app.controller("Poll", Poll)

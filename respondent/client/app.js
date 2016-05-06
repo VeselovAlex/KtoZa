@@ -11,7 +11,6 @@
     function Poll($http, $timeout, $interval) {
       this.isCollapsed = bind(this.isCollapsed, this);
       this.collapse = bind(this.collapse, this);
-      this.submit = bind(this.submit, this);
       this.isAnswered = bind(this.isAnswered, this);
       this.numAnswered = bind(this.numAnswered, this);
       this.isApplied = bind(this.isApplied, this);
@@ -35,7 +34,7 @@
            */
           var cd, poll, questions;
           poll = resp.data;
-          if (poll === null) {
+          if (poll == null) {
             _this.loaded = false;
             return;
           }
@@ -80,14 +79,33 @@
            * Успешное завершение запроса
            */
           var statistics;
-          if ((resp.data.indexOf != null) && resp.data.indexOf("null") === 0) {
-            return;
-          }
           statistics = resp.data;
           statistics.date = new Date(statistics.date);
           return dataBuf.statistics = statistics;
         };
       })(this));
+      this.submit = (function(_this) {
+        return function() {
+          var toSubmit;
+          toSubmit = _this.applies.map(function(a) {
+            var ans;
+            ans = [];
+            a.forEach(function(opt, num) {
+              if (opt === 1) {
+                return ans.push(num);
+              }
+            });
+            return ans;
+          });
+          return $http.post("api/submit", toSubmit).then(function() {
+            console.log('Submitted');
+            return _this.setView('intro');
+          }, function() {
+            console.log('Not submitted');
+            return _this.badSubmission = true;
+          });
+        };
+      })(this);
       this.setView('intro');
     }
 
@@ -151,11 +169,11 @@
     };
 
     Poll.prototype.canShowQuestions = function() {
-      return true;
+      return this.loaded && this.isRegistered() && (this.pollState === "started");
     };
 
     Poll.prototype.canShowStatistics = function() {
-      return true;
+      return this.loaded && (this.pollState === "ended");
     };
 
     Poll.prototype.isRegistered = function() {
@@ -246,21 +264,6 @@
 
     Poll.prototype.isAnswered = function(q) {
       return this.questionsAnswered[q];
-    };
-
-    Poll.prototype.submit = function(e) {
-      var toSubmit;
-      toSubmit = this.applies.map(function(a) {
-        var ans;
-        ans = [];
-        a.forEach(function(opt, num) {
-          if (opt === 1) {
-            return ans.push(num);
-          }
-        });
-        return ans;
-      });
-      return console.log(JSON.stringify(toSubmit));
     };
 
     Poll.prototype.collapsed = [];

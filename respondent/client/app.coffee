@@ -15,7 +15,7 @@ class Poll
                 # Успешное завершение запроса
                 ###
                 poll = resp.data
-                if poll is null
+                if not poll?
                     @loaded = false
                     return
                 @header.title = poll.title
@@ -50,11 +50,28 @@ class Poll
                 ###
                 # Успешное завершение запроса
                 ###
-                if resp.data.indexOf? && resp.data.indexOf("null") is 0 
-                    return
                 statistics = resp.data
                 statistics.date = new Date(statistics.date)
                 dataBuf.statistics = statistics
+                
+        @submit = =>    
+            toSubmit = @applies.map (a) ->
+                ans = []
+                a.forEach (opt, num) ->
+                    if opt is 1 
+                        ans.push(num)
+                return ans
+            $http
+                .post "api/submit", toSubmit
+                .then =>
+                        # Успех
+                        console.log 'Submitted'
+                        @setView('intro')
+                    , =>
+                        # Отказ
+                        console.log 'Not submitted'
+                        @badSubmission = true
+        
         # Начальное состояние -- "intro"
         @setView('intro')
                 
@@ -106,13 +123,9 @@ class Poll
             
     # Управление навигацией
     canShowQuestions: =>
-        # DEBUG version
-        true
-        #@loaded && @isRegistered() && (@pollState is "started")        
+        @loaded && @isRegistered() && (@pollState is "started")        
     canShowStatistics: =>
-        # DEBUG
-        true
-        #@loaded && (@pollState is "ended")        
+        @loaded && (@pollState is "ended")        
     
     # Управление регистрацией
     isRegistered: => true
@@ -183,15 +196,6 @@ class Poll
     
     isAnswered: (q) =>
         return @questionsAnswered[q]
-        
-    submit: (e) =>    
-        toSubmit = @applies.map (a) ->
-            ans = []
-            a.forEach (opt, num) ->
-                if opt is 1 
-                    ans.push(num)
-            return ans
-        console.log JSON.stringify toSubmit
     
     # Сворачивание ответов
     collapsed: []

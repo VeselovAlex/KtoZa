@@ -3,11 +3,10 @@
   var Poll, app,
     bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
-  app = angular.module('ktoza-master', []);
+  app = angular.module('ktoza-master', ['ngWebSocket']);
 
   Poll = (function() {
-    function Poll($http) {
-      this.submit = bind(this.submit, this);
+    function Poll($http, $websocket) {
       this.isCollapsed = bind(this.isCollapsed, this);
       this.collapse = bind(this.collapse, this);
       this.isCurrentView = bind(this.isCurrentView, this);
@@ -62,6 +61,48 @@
           return _this.statistics.date.setMilliseconds(0);
         };
       })(this));
+      $websocket("ws://" + location.host + location.pathname + "api/ws").onMessage((function(_this) {
+        return function(msg) {
+          var message;
+          message = JSON.parse(msg.data);
+          if (message.event === "poll-update") {
+            _this.poll = message.data;
+            return _this.statistics = null;
+          } else if (message.event === "stats-update") {
+            return _this.statistics = message.data;
+          }
+        };
+      })(this));
+      this.submit = (function(_this) {
+        return function() {
+          var poll;
+          if (confirm("При обновлении опроса текущая статистика будет удалена. Продолжить?")) {
+            poll = {
+              title: _this.poll.title,
+              caption: _this.poll.caption,
+              events: _this.poll.events
+            };
+            poll.questions = _this.angQuestions.map(function(q) {
+              var ret;
+              ret = {
+                type: q.type,
+                text: q.text
+              };
+              ret.options = q.options.map(function(o) {
+                return o.option;
+              });
+              return ret;
+            });
+            return $http.put("api/poll", poll).then(function() {
+              _this.poll = poll;
+              return console.log('Submitted');
+            }, function() {
+              console.log('Not submitted');
+              return _this.badSubmission = true;
+            });
+          }
+        };
+      })(this);
     }
 
     Poll.prototype.createPoll = function() {
@@ -210,27 +251,6 @@
 
     Poll.prototype.isCollapsed = function(q) {
       return this.collapsed[q];
-    };
-
-    Poll.prototype.submit = function() {
-      var poll;
-      poll = {
-        title: this.poll.title,
-        caption: this.poll.caption,
-        events: this.poll.events
-      };
-      poll.questions = this.angQuestions.map(function(q) {
-        var ret;
-        ret = {
-          type: q.type,
-          text: q.text
-        };
-        ret.options = q.options.map(function(o) {
-          return o.option;
-        });
-        return ret;
-      });
-      return console.log(JSON.stringify(poll));
     };
 
     return Poll;

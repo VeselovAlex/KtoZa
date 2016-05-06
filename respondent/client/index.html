@@ -144,6 +144,9 @@
             </div>
           </div>
           <button type="button" class="btn btn-success" style="margin: 0 auto;" ng-click="pollCtrl.submit()">Отправить ответ</button>
+          <div class="text-danger" ng-show="pollCtrl.badSubmission">
+            Не удалось отправить ответ
+          </div>
         </div>
     </aside>
     <div class="content">
@@ -173,7 +176,7 @@
           </div>
           <div ng-show="pollCtrl.pollState === 'started'">
             <h2>Идет опрос...
-            <small>Вы <span ng-hide="pollCtrl.isRegistered()">не</span> зарегистрированы</small>
+            <small>Вы <span ng-hide="pollCtrl.isRegistered()">не</span> зарегистрированы<span ng-hide="pollCtrl.isRegistered()">, либо уже ответили</span></small>
             </h2>
             <h2>До завершения осталось</h2>
             <div class="countdown" ng-bind="pollCtrl.countdown.timeString"></div>

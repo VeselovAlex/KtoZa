@@ -70,9 +70,7 @@ func (pubSub *wsPubSubPool) socketSubscribe(socket *websocket.Conn) {
 		pool:   pubSub,
 	}
 	pubSub.subscribe <- c
-	defer func() {
-		pubSub.delete <- c
-	}()
+	defer func() { pubSub.delete <- c }()
 
 	// Отправка сообщения клиенту
 	go c.write()
@@ -87,7 +85,6 @@ func (pubSub *wsPubSubPool) NotifyAll(data interface{}) {
 
 func (pubSub *wsPubSubPool) Await() interface{} {
 	data := <-pubSub.read
-	log.Println("DATA :: ", data)
 	log.Println("RESPONDENTS :: Got new message")
 	return data
 }
@@ -96,9 +93,9 @@ func (pubSub *wsPubSubPool) run() {
 	for {
 		select {
 		case c := <-pubSub.delete:
-			// Удаление клиента
 			delete(pubSub.clients, c)
 			close(c.send)
+			log.Println("RESPONDENTS :: Removed connection")
 		case c := <-pubSub.subscribe:
 			pubSub.clients[c] = true
 			log.Println("RESPONDENTS :: New R-server connection")
@@ -108,8 +105,7 @@ func (pubSub *wsPubSubPool) run() {
 				case c.send <- data:
 					// Отправка сообщения
 				default:
-					// Не могу отправить сообщение
-					delete(pubSub.clients, c)
+					// Ничего не делаем, удалением занимается другой поток
 				}
 			}
 		}
