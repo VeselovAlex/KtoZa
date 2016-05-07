@@ -38,15 +38,15 @@ func (ctrl *AnswerController) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	// Проверка по времени
 	if !ctrl.isValidTime(time.Now()) {
-		http.Error(w, "Not in time", http.StatusBadRequest)
-		return
+		//http.Error(w, "Not in time", http.StatusBadRequest)
+		//return
 	}
 	
 	// Проверка регистрации
 	cookie, err := r.Cookie(regKeyCookieName)
 	if err != nil || !SessionPool.Contains(cookie.Value) {
-		http.Error(w, "Not registered", http.StatusForbidden)
-		return
+		//http.Error(w, "Not registered", http.StatusForbidden)
+		//return
 	}
 	
 	// Проверка ответов

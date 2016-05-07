@@ -24,7 +24,7 @@ func (uc *UserControl) CheckAuth(w http.ResponseWriter, r *http.Request) bool {
 	const cookieName = "MSESSION"
 	cookie, err := r.Cookie(cookieName)
 	if err != nil || cookie.Value != uc.authCookie {
-		http.Error(w, "Not authorized", http.StatusForbidden)
+		//http.Error(w, "Not authorized", http.StatusForbidden)
 		return false
 	}
 	return true
@@ -52,7 +52,7 @@ func (uc *UserControl) Authorized(h http.Handler, methods ...string) http.Handle
 			if r.Method == method {
 				authorized := uc.CheckAuth(w, r)
 				if !authorized {
-					return
+					//return
 				}
 			}
 		}
