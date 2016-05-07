@@ -27,10 +27,26 @@ func init() {
 		showUsage()
 		os.Exit(-1)
 	}
+
 }
 
 func main() {
 	fmt.Println("KtoZa poll provider. Master server")
+
+	// Загрузка лог-файла
+	if logFile != "" {
+		file, err := os.OpenFile(logFile, os.O_APPEND, 0755)
+		if os.IsNotExist(err) {
+			file, err = os.Create(logFile)
+		}
+		if err != nil {
+			fmt.Println("Can not open log file:", err)
+			os.Exit(1)
+		}
+		defer file.Close()
+		log.SetOutput(file)
+	}
+
 	log.Println("SERVER INIT :: Initialization started...")
 
 	loadDataStorage()
