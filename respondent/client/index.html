@@ -26,11 +26,16 @@
   
   .logo {
     width: 100%;
+    height: 2em;
     font-size: 200%;
     text-align: center;
     padding: 0.2em;
     margin-bottom: 0.5em;
     border-bottom: 1px solid #ccc;
+    background-image: url("logo.png");
+    background-repeat: no-repeat;
+    background-size: 50%;
+    background-position: center;
   }
   
   .view {
@@ -112,11 +117,11 @@
 
 <body ng-app="ktoza-respondent" ng-controller="Poll as pollCtrl">
   <header>
-    <div class="logo">Опрос</div>
+    <div class="logo"></div>
     <nav>
       <ul class="nav nav-pills nav-stacked">
         <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('intro')}">
-          <a href ng-click="pollCtrl.setView('intro')">Начало</a>
+          <a href ng-click="pollCtrl.setView('intro')">Стартовая страница</a>
         </li>
         <li class="navbar-item" ng-class="{'active' : pollCtrl.isCurrentView('questions')}" ng-show="pollCtrl.canShowQuestions()">
           <a href ng-click="pollCtrl.setView('questions')">Вопросы</a>

@@ -51,7 +51,7 @@ func main() {
 	log.Println("SERVER INIT :: Initialization started...")
 
 	log.Println("SERVER INIT :: Connecting to master...")
-	controllers.ConnectToMaster(masterHost)
+	controllers.ConnectToMaster(masterHost, "http://localhost"+appHost)
 	log.Println("SERVER INIT :: Connected to master")
 
 	initHandlers()

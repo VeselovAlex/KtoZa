@@ -21,6 +21,7 @@ var MasterServer *master
 
 type master struct {
 	hostUrl string
+	origin  string
 
 	stats  chan *model.Statistics
 	polls  chan *model.Poll
@@ -33,9 +34,10 @@ type master struct {
 }
 
 // ConnectToMaster инициализирует прокси M-Сервера с данным URL
-func ConnectToMaster(urlString string) {
+func ConnectToMaster(urlString, origin string) {
 	MasterServer = &master{
 		hostUrl:    urlString,
+		origin:     origin,
 		stats:      make(chan *model.Statistics, 8),
 		caches:     make(chan *model.Statistics, 8),
 		polls:      make(chan *model.Poll, 8),
@@ -119,7 +121,7 @@ func (m *master) tryConnect() {
 	url := strings.Replace(m.hostUrl, "http:", "ws:", 1) + "/api/ws"
 	for {
 		log.Println("MASTER SERVER :: Trying to connect ...")
-		conn, err := websocket.Dial(url, "", "http://localhost:8080")
+		conn, err := websocket.Dial(url, "", m.origin)
 		if err == nil {
 			m.lock.Lock()
 			m.conn = conn
