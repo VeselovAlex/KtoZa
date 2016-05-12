@@ -1,3 +1,8 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+//
+// evtwrap.go содержит реализацию обертки сообщений о происходящих событиях
 package controllers
 
 import (
@@ -6,6 +11,7 @@ import (
 	"github.com/VeselovAlex/KtoZa/model"
 )
 
+// Wrap осущечтвляет оборачивание данных в сообщения
 var Wrap *eventMessageWrapper
 
 type eventMessageWrapper struct{}
@@ -15,6 +21,7 @@ type eventMessage struct {
 	Data  interface{} `json:"data"`
 }
 
+// EventRawMessage представляет обертку сообщения, получаемого из WebSocket-канала
 type EventRawMessage struct {
 	Event string          `json:"event"`
 	Data  json.RawMessage `json:"data"`

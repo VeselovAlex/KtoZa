@@ -1,3 +1,8 @@
+###
+# Александр Веселов <veselov143@gmail.com>
+# СПбГУ, Математико-механический факультет, гр. 442
+# Май, 2016 г.
+###
 app = angular.module('ktoza-master', ['ngWebSocket'])
 
 class Poll

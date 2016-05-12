@@ -1,3 +1,9 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+//
+// sessioncontroller.go содержит реализацию контроллера пользовательских сессий
+
 package controllers
 
 import (
@@ -11,6 +17,7 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// SessionPoll представляет глобальный пул регистрационных ключей
 var SessionPool = &sessionPool{
 	data: make(map[string]bool, 100),
 }

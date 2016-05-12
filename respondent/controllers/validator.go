@@ -1,3 +1,8 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+//
+// validator.go содержит реализацию валидатора ответов
 package controllers
 
 import "github.com/VeselovAlex/KtoZa/model"
@@ -57,6 +62,7 @@ type Validator struct {
 	ansValidators []AnswerValidator
 }
 
+// IsValid возвращает true, если набор ответов корректен
 func (v Validator) IsValid(set model.AnswerSet) bool {
 	asSlice := []model.Answer(set)
 	// Проверка соответствия числа ответов числу вопросов
