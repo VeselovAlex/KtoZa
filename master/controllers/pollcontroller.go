@@ -1,3 +1,9 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+
+// pollcontroller.go содержит реализацию контроллера опросов 
+// M-сервера системы KtoZa
 package controllers
 
 import (
@@ -53,6 +59,7 @@ func (ctrl *PollController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		ctrl.handleDeletePoll(w, r)
 	default:
+		// Метод не поддерживается
 		errMsg := fmt.Sprint("Method &s in unsupported", r.Method)
 		http.Error(w, errMsg, http.StatusMethodNotAllowed)
 		log.Printf("POLL CONTROLLER :: [%s] %s\n", r.Method, errMsg)

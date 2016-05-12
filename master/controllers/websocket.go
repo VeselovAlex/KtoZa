@@ -1,3 +1,10 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+
+// websocket.go содержит реализацию контроллера WebSocket-соединений
+// M-сервера системы KtoZa
+
 package controllers
 
 import (
@@ -11,37 +18,54 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// Respondents представляет глобальный пул WebSocket-соединений
 var Respondents = newWebSocketPubSub()
 
+// WebSocketController осуществляет обработку WebSocket-соединений
 type WebSocketController struct {
 	http.Handler
 }
 
+// NewWebSocketController создает экземпляр WebSocket-контроллера
 func NewWebSocketController() *WebSocketController {
 	return &WebSocketController{
 		websocket.Handler(handleWebSocketConnection),
 	}
 }
 
+// handleWebSocketConnection добавляет соединение к
+// пулу соединений при подключении
 func handleWebSocketConnection(conn *websocket.Conn) {
 	Respondents.Subscribe(conn)
 }
 
+// OnPollUpdate осуществляет оповещение подключенных
+// клиентов об изменении статистики
 func (ctrl *WebSocketController) OnPollUpdate(poll *model.Poll) {
 	Respondents.NotifyAll(common.Wrap.UpdatedPoll(poll))
 }
+
+// OnStatisticsUpdate осуществляет оповещение подключенных
+// клиентов об изменении статистики
 func (ctrl *WebSocketController) OnStatisticsUpdate(stat *model.Statistics) {
 	Respondents.NotifyAll(common.Wrap.UpdatedStatistics(stat))
 }
 
+// wsPubSubPool представляет пул WebSocket-соединений
+// Основано на: [Mat Ryer. Go Programming Blueprints. Ch.1]
 type wsPubSubPool struct {
+	// Канал новых соединений
 	subscribe chan *connection
-	delete    chan *connection
-	publish   chan interface{}
-	read      chan interface{}
-	clients   map[*connection]bool
+	// Канал соединений требующих удаления
+	delete chan *connection
+	// Канал сообщений для отправки клиентам
+	publish chan interface{}
+	// Канал сообщений для приема сообщений
+	read    chan interface{}
+	clients map[*connection]bool
 }
 
+// newWebSocketPubSub создает и инициализирует пул соединений
 func newWebSocketPubSub() *wsPubSubPool {
 	res := &wsPubSubPool{
 		subscribe: make(chan *connection, 16),
@@ -54,6 +78,8 @@ func newWebSocketPubSub() *wsPubSubPool {
 	return res
 }
 
+// Subscribe проверяет, что client является WebSocket-соединением
+// и добавляет клиента к пулу соединений
 func (pubSub *wsPubSubPool) Subscribe(client io.ReadWriteCloser) {
 	socket, ok := client.(*websocket.Conn)
 	if ok {
@@ -63,6 +89,7 @@ func (pubSub *wsPubSubPool) Subscribe(client io.ReadWriteCloser) {
 	}
 }
 
+// socketSubscribe добавляет WebSocket-соединение к пулу соединений
 func (pubSub *wsPubSubPool) socketSubscribe(socket *websocket.Conn) {
 	c := &connection{
 		send:   make(chan interface{}),
@@ -79,16 +106,19 @@ func (pubSub *wsPubSubPool) socketSubscribe(socket *websocket.Conn) {
 	c.read()
 }
 
+// NotifyAll рассылает сообщение всем подключенным клиентам
 func (pubSub *wsPubSubPool) NotifyAll(data interface{}) {
 	pubSub.publish <- data
 }
 
+// Await возращает сообщение при его получении
 func (pubSub *wsPubSubPool) Await() interface{} {
 	data := <-pubSub.read
 	log.Println("RESPONDENTS :: Got new message")
 	return data
 }
 
+// run запускает цикл обработки сообщений
 func (pubSub *wsPubSubPool) run() {
 	for {
 		select {
@@ -112,12 +142,15 @@ func (pubSub *wsPubSubPool) run() {
 	}
 }
 
+// conneсtion представляет клиентское соединение
 type connection struct {
 	send   chan interface{}
 	socket *websocket.Conn
 	pool   *wsPubSubPool
 }
 
+// read принимает и декодирует сообщения от клиента и
+// направляет их в канал read пула
 func (c *connection) read() {
 	for {
 		raw := common.EventRawMessage{}
@@ -132,13 +165,13 @@ func (c *connection) read() {
 	log.Println("RESPONDENTS :: Connection closed (reading)")
 }
 
+// write отправляет сообщения из канала send удаленнному клиенту
 func (c *connection) write() {
 	for msg := range c.send {
 		err := websocket.JSON.Send(c.socket, msg)
 		if err != nil {
 			break
 		}
-		c.pool.read <- msg
 	}
 	c.socket.Close()
 	log.Println("RESPONDENTS :: Connection closed (writing)")

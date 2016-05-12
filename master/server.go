@@ -1,3 +1,8 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+
+// server.go содержит реализацию M-сервера системы KtoZa
 package main
 
 import (
@@ -86,7 +91,6 @@ func initHandlers() {
 }
 
 func loadDataStorage() {
-
 	log.Println("SERVER INIT :: Opening server data folder...")
 	data := "data"
 	// Создаем папку выходных данных

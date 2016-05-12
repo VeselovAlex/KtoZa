@@ -1,3 +1,9 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+
+// websocket_test.go содержит unit-тесты контроллера WebSocket-соединений
+// M-сервера системы KtoZa
 package controllers
 
 import (

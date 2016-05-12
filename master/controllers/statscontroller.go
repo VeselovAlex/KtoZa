@@ -1,3 +1,9 @@
+// Александр Веселов <veselov143@gmail.com>
+// СПбГУ, Математико-механический факультет, гр. 442
+// Май, 2016 г.
+
+// statscontroller.go содержит реализацию контроллера статистики
+// M-сервера системы KtoZa
 package controllers
 
 import (
@@ -12,6 +18,8 @@ import (
 	common "github.com/VeselovAlex/KtoZa"
 )
 
+// StatisticsListener представляет интерфейс объекта,
+// отслеживающего изменения статистики
 type StatisticsListener interface {
 	OnStatisticsUpdate(*model.Statistics)
 }
@@ -105,21 +113,29 @@ func (ctrl *StatisticsController) OnPollUpdate(poll *model.Poll) {
 	ctrl.notifyListeners(ctrl.stat)
 }
 
+// listenForAnswerCaches ощуществляет прослушивание подключений и
+// применение обновлений с последующим оповещением всех слушателей
+// об обновлении статистики
 func (ctrl *StatisticsController) listenForAnswerCaches() {
 	apply := func(cache *model.Statistics) {
+		// Обеспечение потокобезопасности
 		ctrl.lock.Lock()
 		defer ctrl.lock.Unlock()
 		if ctrl.stat == nil {
 			// Пропускаем
 			return
 		}
+		// Обновление статистики
 		if ok := ctrl.stat.JoinWith(cache); ok {
+			// Если успешно - оповещаем слушателей
 			ctrl.notifyListeners(ctrl.stat)
 		}
 	}
 	for {
+		// Ожидание сообщения
 		msg, ok := Respondents.Await().(common.EventRawMessage)
 		if !ok || msg.Event != common.EventNewAnswerCache {
+			// Пропускаем пустые и неподдерживаемые сообщения
 			continue
 		}
 		cache := &model.Statistics{}
